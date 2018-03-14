@@ -3,7 +3,7 @@ CFLAGS=-c -Wall -std=c++98
 LDFLAGS=
 SOURCES=main.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
-EXECUTABLE=lab
+EXECUTABLE=yxsh
 
 all: $(SOURCES) $(EXECUTABLE)
 
