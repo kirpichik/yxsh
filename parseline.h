@@ -1,5 +1,5 @@
 //
-//  parseline.h
+//  promptline.h
 //  yxsh
 //
 //  Created by Кирилл on 14.03.2018.
@@ -9,17 +9,6 @@
 #ifndef _PARSELINE_H
 #define _PARSELINE_H
 
-#include <string>
-
-#include "command.h"
-
-/**
- * Parses user input line and returns ordered set of commands.
- *
- * @param input User input.
- *
- * @return Ordered set of commands.
- */
-CommandsSet parseline(const std::string input);
+int parseline(char* line, commandline_t* commandline);
 
 #endif /* _PARSELINE_H */

@@ -1,8 +1,8 @@
-CC=g++
-CFLAGS=-c -Wall -std=c++98
+CC=gcc
+CFLAGS=-c -Wall -std=c99
 LDFLAGS=
 SOURCES=shell.c promptline.c parseline.c
-OBJECTS=$(SOURCES:.cpp=.o)
+OBJECTS=$(SOURCES:.c=.o)
 EXECUTABLE=yxsh
 
 all: $(SOURCES) $(EXECUTABLE)
