@@ -1,7 +1,7 @@
 CC=g++
 CFLAGS=-c -Wall -std=c++98
 LDFLAGS=
-SOURCES=main.cpp
+SOURCES=main.cpp promptline.cpp parseline.cpp command.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=yxsh
 
