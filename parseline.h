@@ -13,6 +13,13 @@
 
 #include "command.h"
 
+/**
+ * Parses user input line and returns ordered set of commands.
+ *
+ * @param input User input.
+ *
+ * @return Ordered set of commands.
+ */
 CommandsSet parseline(const std::string input);
 
 #endif /* _PARSELINE_H */
