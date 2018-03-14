@@ -11,13 +11,14 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <stdlib.h>
+#include <errno.h>
 
 char *infile, *outfile, *appfile;
 struct command cmds[MAXCMDS];
 char bkgrnd;
 
 int main(int argc, char* argv[]) {
-  int i;
   char line[1024]; // allow large command lines
   int ncmds;
   char prompt[50]; // shell prompt
@@ -31,9 +32,8 @@ int main(int argc, char* argv[]) {
       continue; // read next line
 #ifdef DEBUG
     {
-      int i, j;
-      for (i = 0; i < ncmds; i++) {
-        for (j = 0; cmds[i].cmdargs[j] != (char*)NULL; j++)
+      for (int i = 0; i < ncmds; i++) {
+        for (int j = 0; cmds[i].cmdargs[j] != (char*)NULL; j++)
           fprintf(stderr, "cmd[%d].cmdargs[%d] = %s\n", i, j,
                   cmds[i].cmdargs[j]);
         fprintf(stderr, "cmds[%d].cmdflag = %o\n", i, cmds[i].cmdflag);
@@ -41,8 +41,13 @@ int main(int argc, char* argv[]) {
     }
 #endif
 
-    for (i = 0; i < ncmds; i++) {
-      /*  FORK AND EXECUTE  */
+    for (int i = 0; i < ncmds; i++) {
+      pid_t pid = fork();
+      if (pid == 0) {
+        if (execvp(cmds[i].cmdargs[0], cmds[i].cmdargs))
+          perror("Cannot execute");
+      }
+      wait(NULL);
     }
 
   } // close while
