@@ -1,5 +1,5 @@
 //
-//  promptline.h
+//  parseline.h
 //  yxsh
 //
 //  Created by Кирилл on 14.03.2018.

@@ -22,7 +22,7 @@ struct command {
 typedef struct command command_t;
 
 struct commandline {
-  command_t* cmds[MAXCMDS];
+  command_t cmds[MAXCMDS];
   char* infile;
   char* outfile;
   char* appfile;

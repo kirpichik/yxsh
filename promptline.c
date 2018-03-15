@@ -12,7 +12,7 @@
 
 #include "promptline.h"
 
-int promptline(char* prompt, char* line, int sizline) {
+int promptline(char* prompt, char* line, size_t sizline) {
   int n = 0;
 
   write(1, prompt, strlen(prompt));

@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < ncmds; i++) {
       pid_t pid = fork();
       if (pid == 0) {
-        if (execvp(commandline.cmds[i]->cmdargs[0], commandline.cmds[i].cmdargs))
+        if (execvp(commandline.cmds[i].cmdargs[0], commandline.cmds[i].cmdargs))
           perror("Cannot execute");
       }
       wait(NULL);

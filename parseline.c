@@ -25,12 +25,13 @@ int parseline(char* line, commandline_t* commandline) {
   static char delim[] = " \t|&<>;\n";
 
   /* initialize  */
-  bkgrnd = nargs = ncmds = rval = 0;
+  commandline->background = 0;
+  nargs = ncmds = rval = 0;
   s = line;
-  infile = outfile = appfile = (char*) NULL;
-  cmds[0].cmdargs[0] = (char*) NULL;
+  commandline->infile = commandline->outfile = commandline->appfile = (char*) NULL;
+  commandline->cmds[0].cmdargs[0] = (char*) NULL;
   for (i = 0; i < MAXCMDS; i++)
-    cmds[i].cmdflag = 0;
+    commandline->cmds[i].cmdflag = 0;
 
   while (*s) { // until line has been parsed
     s = blankskip(s); // skip white space
@@ -40,7 +41,7 @@ int parseline(char* line, commandline_t* commandline) {
     // handle <, >, |, &, and ;
     switch (*s) {
       case '&':
-        ++bkgrnd;
+        commandline->background++;
         *s++ = '\0';
         break;
       case '>':
@@ -56,9 +57,9 @@ int parseline(char* line, commandline_t* commandline) {
         }
 
         if (aflg)
-          appfile = s;
+          commandline->appfile = s;
         else
-          outfile = s;
+          commandline->outfile = s;
         s = strpbrk(s, delim);
         if (isspace(*s))
           *s++ = '\0';
@@ -70,7 +71,7 @@ int parseline(char* line, commandline_t* commandline) {
           fprintf(stderr, "syntax error\n");
           return (-1);
         }
-        infile = s;
+        commandline->infile = s;
         s = strpbrk(s, delim);
         if (isspace(*s))
           *s++ = '\0';
@@ -80,8 +81,8 @@ int parseline(char* line, commandline_t* commandline) {
           fprintf(stderr, "syntax error\n");
           return (-1);
         }
-        cmds[ncmds++].cmdflag |= OUTPIP;
-        cmds[ncmds].cmdflag |= INPIP;
+        commandline->cmds[ncmds++].cmdflag |= OUTPIP;
+        commandline->cmds[ncmds].cmdflag |= INPIP;
         *s++ = '\0';
         nargs = 0;
         break;
@@ -94,8 +95,8 @@ int parseline(char* line, commandline_t* commandline) {
         // a command argument
         if (nargs == 0) // next command
           rval = ncmds + 1;
-        cmds[ncmds].cmdargs[nargs++] = s;
-        cmds[ncmds].cmdargs[nargs] = (char*)NULL;
+        commandline->cmds[ncmds].cmdargs[nargs++] = s;
+        commandline->cmds[ncmds].cmdargs[nargs] = (char*)NULL;
         s = strpbrk(s, delim);
         if (isspace(*s))
           *s++ = '\0';
@@ -110,7 +111,7 @@ int parseline(char* line, commandline_t* commandline) {
    *  no command on the right side of a pipe
    *  no command to the left of a pipe is checked above
    */
-  if (cmds[ncmds - 1].cmdflag & OUTPIP) {
+  if (commandline->cmds[ncmds - 1].cmdflag & OUTPIP) {
     if (nargs == 0) {
       fprintf(stderr, "syntax error\n");
       return (-1);
