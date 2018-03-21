@@ -17,7 +17,7 @@
 \|                                    return PIPE;
 ;                                     return SEPARATOR;
 \n                                    return NEWLINE;
-[ \t]+                                /* Ignore blanks. */
+[ \t]+                                { /* Ignore blanks. */ }
 [a-zA-Z0-9]+ yylval = strdup(yytext); return WORD;
 
 %%

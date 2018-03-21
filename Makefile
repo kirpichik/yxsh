@@ -1,11 +1,11 @@
 # Compilers
 CC=gcc
-YACC_CC=yacc
+
 LEX_CC=lex
 
 # Compilers flags
 CFLAGS=-c -Wall -std=c99
-LDFLAGS=-lm
+LDFLAGS=-lm -ll
 
 # Parser sources
 YACC_SOURCE=parser.y
@@ -34,7 +34,8 @@ yacc: $(YACC_SOURCE)
 	$(YACC_CC) -d -o $(YACC_BUILD) $(YACC_SOURCE)
 
 lex: $(LEX_SOURCE)
-	$(LEX_CC) -o $(LEX_BUILD) $(LEX_SOURCE)
+	$(LEX_CC) $(LEX_SOURCE)
+	mv lex.yy.c $(LEX_BUILD)
 
 clean:
 	rm -rf $(OBJECTS) $(EXECUTABLE) $(YACC_BUILD) $(YACC_BUILD:.c=.h) $(LEX_BUILD)
