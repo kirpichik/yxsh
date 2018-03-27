@@ -4,10 +4,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-//#include "parser.h"
+#include "parser.h"
 
 int yylex(void);
 void yyerror(const char* s);
+void yy_scan_string(char* str);
 
 %}
 
@@ -73,6 +74,11 @@ void yyerror(const char* s) {
 
 int yywrap() {
   return 1;
+}
+
+int parseline(char* line, commandline_t* cmds) {
+  yy_scan_string(line);
+  return 0;
 }
 
 /*int main(void) {

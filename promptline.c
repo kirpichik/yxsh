@@ -12,12 +12,12 @@
 
 #include "promptline.h"
 
-int promptline(char* prompt, char* line, size_t sizline) {
+int promptline(char* prompt, char* line, size_t buff_len) {
   int n = 0;
 
   write(1, prompt, strlen(prompt));
   while (1) {
-    n += read(0, (line + n), sizline - n);
+    n += read(0, (line + n), buff_len - n);
     *(line + n) = '\0';
     /*
      *  check to see if command line extends onto
@@ -33,3 +33,4 @@ int promptline(char* prompt, char* line, size_t sizline) {
     return (n); /* all done */
   }
 }
+

@@ -12,27 +12,30 @@
 #include <stdbool.h>
 
 #define MAXARGS 256
-#define MAXCMDS 50
+#define MAXCMDS 64
 
 struct command {
+  char flags;
   char* cmdargs[MAXARGS];
-  char cmdflag;
+  char* infile;
+  char* outfile;
 };
 
 typedef struct command command_t;
 
 struct commandline {
   command_t cmds[MAXCMDS];
-  char* infile;
-  char* outfile;
-  char* appfile;
-  bool background;
 };
 
 typedef struct commandline commandline_t;
 
-/*  cmdflag's  */
-#define OUTPIP 01
-#define INPIP 02
+/*  Command flag's  */
+#define FLAG_IN_PIPE 1
+#define FLAG_OUT_PIPE 2
+#define FLAG_BACKGROUND 4
+#define FLAG_IN_FILE 8
+#define FLAG_OUT_FILE 16
+#define FLAG_APPLY_FILE 32
 
 #endif /* _SHELL_H */
+

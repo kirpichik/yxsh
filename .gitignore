@@ -1,4 +1,5 @@
 yxsh
 *.o
 *_yacc.*
+*_lex.*
 
