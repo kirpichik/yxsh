@@ -16,9 +16,9 @@ BISON_SOURCE=parser.y
 BISON_PRE_BUILD=parser.c
 
 # Sources
-SOURCES=$(YACC_PRE_BUILD) shell.c promptline.c
+SOURCES=$(BISON_PRE_BUILD) shell.c promptline.c
 OBJECTS=$(SOURCES:.c=.o)
-HEADERS=shell.h promptline.h parser.h
+HEADERS=shell.h promptline.h parseline.h
 
 EXECUTABLE=yxsh
 
@@ -31,7 +31,7 @@ $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(CFLAGS) $< -o $@
 
 bison: $(BISON_SOURCE)
-	$(BISON_CC) -d -o $(BISON_PRE_BUILD) $(BISON_SOURCE)
+	$(BISON_CC) -o $(BISON_PRE_BUILD) $(BISON_SOURCE)
 
 clean:
 	rm -rf $(OBJECTS) $(EXECUTABLE) $(BISON_PRE_BUILD) $(BISON_PRE_BUILD:.c=.h)
