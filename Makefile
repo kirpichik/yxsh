@@ -16,9 +16,9 @@ BISON_SOURCE=parser.y
 BISON_PRE_BUILD=parser.c
 
 # Sources
-SOURCES=$(BISON_PRE_BUILD) shell.c promptline.c
+SOURCES=$(BISON_PRE_BUILD) shell.c promptline.c executor.c
 OBJECTS=$(SOURCES:.c=.o)
-HEADERS=shell.h promptline.h parseline.h
+HEADERS=shell.h promptline.h parseline.h executor.h
 
 EXECUTABLE=yxsh
 

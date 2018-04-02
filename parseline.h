@@ -1,3 +1,11 @@
+//
+//  parseline.h
+//  yxsh
+//
+//  Created by Кирилл on 02.04.2018.
+//  Copyright © 2018 Кирилл. All rights reserved.
+//
+
 #ifndef _PARSELINE_H
 #define _PARSELINE_H
 
