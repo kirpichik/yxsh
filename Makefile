@@ -25,7 +25,7 @@ EXECUTABLE=yxsh
 all: bison $(HEADERS) $(SOURCES) $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
-	$(CC) $(OBJECTS) $(LEX_BUILD:.c=.o) $(YACC_BUILD:.c=.o) -o $@ $(LDFLAGS)
+	$(CC) $(OBJECTS) -o $@ $(LDFLAGS)
 
 .c.o:
 	$(CC) $(CFLAGS) $< -o $@
