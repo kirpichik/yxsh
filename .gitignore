@@ -1,5 +1,5 @@
 yxsh
 *.o
-*_yacc.*
-*_lex.*
+parser.c
+parser.h
 

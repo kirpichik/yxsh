@@ -1,29 +1,28 @@
-# Compilers
+# Compiler
 CC=gcc
 
-LEX_CC=lex
+ifndef BISON_CC
+BISON_CC=bison
+endif
 
-# Compilers flags
+# Compiler flags
 CFLAGS=-c -Wall -std=c99
-LDFLAGS=-lm -ll
+LDFLAGS=-lm
 
-# Parser sources
-YACC_SOURCE=parser.y
-LEX_SOURCE=lexer.l
-LEX_DISABLED_WARNS=-Wno-unneeded-internal-declaration -Wno-unused-function
+# Bison parser source
+BISON_SOURCE=parser.y
 
-# Parser builds
-YACC_BUILD=parser_yacc.c
-LEX_BUILD=lexer_lex.c
+# Parser pre-builds
+BISON_PRE_BUILD=parser.c
 
 # Sources
-SOURCES=shell.c promptline.c
+SOURCES=$(YACC_PRE_BUILD) shell.c promptline.c
 OBJECTS=$(SOURCES:.c=.o)
 HEADERS=shell.h promptline.h parser.h
 
 EXECUTABLE=yxsh
 
-all: yacc lex parser_yacc lexer_lex $(HEADERS) $(SOURCES) $(EXECUTABLE)
+all: bison $(HEADERS) $(SOURCES) $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(OBJECTS) $(LEX_BUILD:.c=.o) $(YACC_BUILD:.c=.o) -o $@ $(LDFLAGS)
@@ -31,21 +30,11 @@ $(EXECUTABLE): $(OBJECTS)
 .c.o:
 	$(CC) $(CFLAGS) $< -o $@
 
-parser_yacc:
-	$(CC) $(CFLAGS) $(YACC_BUILD) -o $(YACC_BUILD:.c=.o)
-
-lexer_lex:
-	$(CC) $(CFLAGS) $(LEX_DISABLED_WARNS) $(LEX_BUILD) -o $(LEX_BUILD:.c=.o)
-
-yacc: $(YACC_SOURCE)
-	$(YACC_CC) -d -o $(YACC_BUILD) $(YACC_SOURCE)
-
-lex: $(LEX_SOURCE)
-	$(LEX_CC) $(LEX_SOURCE)
-	mv lex.yy.c $(LEX_BUILD)
+bison: $(BISON_SOURCE)
+	$(BISON_CC) -d -o $(BISON_PRE_BUILD) $(BISON_SOURCE)
 
 clean:
-	rm -rf $(OBJECTS) $(EXECUTABLE) $(YACC_BUILD) $(YACC_BUILD:.c=.h) $(LEX_BUILD) $(LEX_BUILD:.c=.o)
+	rm -rf $(OBJECTS) $(EXECUTABLE) $(BISON_PRE_BUILD) $(BISON_PRE_BUILD:.c=.h)
 
 clear: clean
 
