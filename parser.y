@@ -151,6 +151,7 @@ static int storeCommand(char* name) {
     return -1;
   
   current_cmd.cmdargs[0] = name;
+  current_cmd.cmdargs[args_count] = NULL;
   memcpy(&(current_cmds->cmds[commands_count++]), &current_cmd, sizeof(command_t));
   prepare_temp_command();
   return 0;
@@ -159,6 +160,8 @@ static int storeCommand(char* name) {
 static void prepare_temp_command() {
   current_cmd.flags = 0;
   args_count = 1;
+  current_cmd.infile = NULL;
+  current_cmd.outfile = NULL;
 }
 
 static int yylex() {

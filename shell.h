@@ -36,3 +36,4 @@ typedef struct commandline commandline_t;
 #define FLAG_APPLY_FILE 8
 
 #endif /* _SHELL_H */
+

@@ -11,7 +11,13 @@
 
 #include "shell.h"
 
-void execute(commandline_t* commandline, int ncmds);
+/**
+ * Executes commandline.
+ *
+ * @param commandline Commandline for execution.
+ * @param ncmds Number of commands in commandline.
+ */
+void execute(commandline_t* commandline, size_t ncmds);
 
 #endif
 
