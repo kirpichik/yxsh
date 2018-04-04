@@ -28,7 +28,7 @@ static void execute_fork(command_t* cmd) {
  */
 static void execute_parent(pid_t pid, command_t* cmd) {
   if (cmd->flags & FLAG_BACKGROUND) {
-    printf("yxsh: Running background: %d\n", pid);
+    printf("yxsh: Running background: %d\n", (int) pid);
     return;
   }
 
