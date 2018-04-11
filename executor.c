@@ -17,6 +17,7 @@
 #include <unistd.h>
 
 #include "executor.h"
+#include "builtin.h"
 
 static bool set_input_file(char*);
 static bool set_output_file(char*, bool);
@@ -133,6 +134,10 @@ static void execute_parent(pid_t pid, command_t* cmd) {
 
 void execute(commandline_t* commandline, size_t ncmds) {
   for (size_t i = 0; i < ncmds; i++) {
+    
+    if (try_builtin(&commandline->cmds[i]))
+      return;
+
     pid_t pid = fork();
     switch (pid) {
       case -1:
@@ -146,3 +151,4 @@ void execute(commandline_t* commandline, size_t ncmds) {
     }
   }
 }
+
