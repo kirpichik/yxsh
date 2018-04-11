@@ -66,6 +66,7 @@ static void backgroundCommand();
 %token IN_FILE
 %token OUT_FILE
 %token ADD_FILE
+%token MERGE_OUT
 %token ERROR
 
 
@@ -100,9 +101,10 @@ cmd_suffix       :            io_file
                  | cmd_suffix ERROR { yyerror("unexpected qoutes"); YYABORT; }
                  ;
 
-io_file          : IN_FILE  WORD { current_cmd.infile = $2;                                        }
-                 | OUT_FILE WORD { current_cmd.outfile = $2;                                       }
-                 | ADD_FILE WORD { current_cmd.outfile = $2; current_cmd.flags |= FLAG_APPLY_FILE; }
+io_file          : IN_FILE  WORD  { current_cmd.infile = $2;                                        }
+                 | OUT_FILE WORD  { current_cmd.outfile = $2;                                       }
+                 | ADD_FILE WORD  { current_cmd.outfile = $2; current_cmd.flags |= FLAG_APPLY_FILE; }
+                 | MERGE_OUT WORD { current_cmd.outfile = $2; current_cmd.flags |= FLAG_MERGE_OUT;  }
                  ;
 
 linebreak        : NEWLINE
@@ -203,9 +205,8 @@ static int yylex() {
   int word_len = 0;
   bool quotes = false;
 
-  while (c == ' ' || c == '\t') {
+  while (c == ' ' || c == '\t')
     c = *(++current_buff);
-  }
 
   current_buff++;
   switch (c) {
@@ -225,6 +226,9 @@ static int yylex() {
       if ((c = *current_buff) == '>') {
         current_buff++;
         return ADD_FILE;
+      } else if ((c = *current_buff) == '&') {
+        current_buff++;
+        return MERGE_OUT;
       }
       return OUT_FILE;
   }
