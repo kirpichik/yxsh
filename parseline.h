@@ -21,4 +21,12 @@
  */
 int parseline(char* line, commandline_t* cmds);
 
+/**
+ * Free allocated memory for strings.
+ *
+ * @param cmds Array of result commands;
+ * @param ncmds Commands count.
+ */
+void free_cmds_strings(commandline_t* cmds, size_t ncmds);
+
 #endif

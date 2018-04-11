@@ -58,6 +58,7 @@ static void backgroundCommand();
 %}
 
 %token WORD
+%token QUOTES_WORD
 %token NEWLINE
 %token PIPE
 %token BACKGROUND
@@ -65,6 +66,7 @@ static void backgroundCommand();
 %token IN_FILE
 %token OUT_FILE
 %token ADD_FILE
+%token ERROR
 
 
 %start  complete_command
@@ -84,14 +86,18 @@ pipeline         :                         command
                  | pipeline PIPE linebreak command { pipeCommands(); }
                  ;
 
-command          : WORD cmd_suffix { storeCommand($1); }
-                 | WORD { storeCommand($1); }
+command          : WORD cmd_suffix  { storeCommand($1); }
+                 | WORD             { storeCommand($1); }
                  ;
 
 cmd_suffix       :            io_file
                  | cmd_suffix io_file
-                 |            WORD { storeArg($1); }
-                 | cmd_suffix WORD { storeArg($2); }
+                 |                   WORD { storeArg($1); }
+                 | cmd_suffix        WORD { storeArg($2); }
+                 |            QUOTES_WORD { storeArg($1); }
+                 | cmd_suffix QUOTES_WORD { storeArg($2); }
+                 |            ERROR { yyerror("unexpected quotes"); YYABORT; }
+                 | cmd_suffix ERROR { yyerror("unexpected qoutes"); YYABORT; }
                  ;
 
 io_file          : IN_FILE  WORD { current_cmd.infile = $2;                                        }
@@ -114,7 +120,31 @@ separator        : separator_op linebreak
 %%
 
 static void yyerror(const char* s) {
-  printf("yxsh: Syntax error.\n");
+  printf("yxsh: %s\n", s);
+}
+
+static void free_unfinished() {
+  if (!current_cmd.infile)
+    free(current_cmd.infile);
+  if (!current_cmd.outfile)
+    free(current_cmd.outfile);
+  if (!current_cmd.cmdargs[0])
+    free(current_cmd.cmdargs[0]);
+  for (size_t i = 1; i < args_count; i++)
+    free(current_cmd.cmdargs[i]);
+}
+
+void free_cmds_strings(commandline_t* cmdline, size_t ncmds) {
+  for (size_t i = 0; i < ncmds; i++) {
+    if (cmdline->cmds[i].infile)
+      free(cmdline->cmds[i].infile);
+    if (cmdline->cmds[i].outfile)
+      free(cmdline->cmds[i].outfile);
+
+    size_t j = 0;
+    while (cmdline->cmds[i].cmdargs[j])
+      free(cmdline->cmds[i].cmdargs[j++]);
+  }
 }
 
 int parseline(char* line, commandline_t* cmds) {
@@ -123,8 +153,11 @@ int parseline(char* line, commandline_t* cmds) {
   prepare_temp_command();
   commands_count = 0;
   
-  if (yyparse())
+  if (yyparse()) {
+    free_cmds_strings(cmds, commands_count);
+    free_unfinished();
     return -1;
+  }
 
   return commands_count;
 }
@@ -160,6 +193,7 @@ static int storeCommand(char* name) {
 static void prepare_temp_command() {
   current_cmd.flags = 0;
   args_count = 1;
+  current_cmd.cmdargs[0] = NULL;
   current_cmd.infile = NULL;
   current_cmd.outfile = NULL;
 }
@@ -167,6 +201,7 @@ static void prepare_temp_command() {
 static int yylex() {
   int c = *current_buff;
   int word_len = 0;
+  bool quotes = false;
 
   while (c == ' ' || c == '\t') {
     c = *(++current_buff);
@@ -195,18 +230,23 @@ static int yylex() {
   }
   current_buff--;
 
-  while (!isspace(c)) {
+  if (c == '"') {
+    quotes = true;
+    c = *(++current_buff);
+  }
+
+  while ((quotes && c != '"' && c != '\0') || (!quotes && !isspace(c))) {
     word_len++;
     c = *(current_buff + word_len);
   }
 
-  if (!word_len)
-    return -1;
+  if ((quotes && c != '"') || (!quotes && *(current_buff + word_len - 1) == '"'))
+    return ERROR;
 
   yylval = (char*) malloc((word_len + 1) * sizeof(char));
   memcpy(yylval, current_buff, word_len * sizeof(char));
-  current_buff += word_len;
+  current_buff += word_len + (quotes ? 1 : 0);
   yylval[word_len] = '\0';
-  return WORD;
+  return quotes ? QUOTES_WORD : WORD;
 }
 
