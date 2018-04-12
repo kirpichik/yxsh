@@ -17,9 +17,10 @@
 #include <unistd.h>
 
 #include "executor.h"
+#include "builtin.h"
 
 static bool set_input_file(char*);
-static bool set_output_file(char*, bool);
+static bool set_output_file(char*, int);
 
 /**
  * Setup input/output redirects if presented.
@@ -29,8 +30,7 @@ static bool set_output_file(char*, bool);
 static bool setup_redirects(command_t* cmd) {
   if (cmd->infile && !set_input_file(cmd->infile))
     return false;
-  if (cmd->outfile &&
-      !set_output_file(cmd->outfile, cmd->flags & FLAG_APPLY_FILE))
+  if (cmd->outfile && !set_output_file(cmd->outfile, cmd->flags))
     return false;
   return true;
 }
@@ -77,28 +77,42 @@ static bool set_input_file(char* infile) {
  * Redirects output from STDOUT to file.
  *
  * @param outfile Output file name.
- * @param apply Apply output to the end of file or owerride file.
+ * @param redirects Flags for redirects.
  *
  * @return true if success.
  */
-static bool set_output_file(char* outfile, bool apply) {
+static bool set_output_file(char* outfile, int redirects) {
   int file;
+  bool result;
   int flags = O_WRONLY;
 
-  if (apply)
+  if (redirects & FLAG_APPLY_FILE)
     flags |= O_CREAT | O_APPEND;
   else
     flags |= O_CREAT | O_TRUNC;
 
-  file = open(outfile, flags, (mode_t)0644);
-
-  if (file == -1) {
+  if ((file = open(outfile, flags, (mode_t)0644)) == -1) {
     perror("yxsh: Cannot open output file");
     return false;
   }
 
-  return switch_file_descriptor(file, STDOUT_FILENO,
-                                "yxsh: Cannot set output file");
+  printf("MERGE: %d\n", redirects & FLAG_APPLY_FILE);
+
+  result = switch_file_descriptor(file, STDOUT_FILENO,
+      "yxsh: Cannot set output file");
+  if (!result)
+    return false;
+
+  if (redirects & FLAG_MERGE_OUT) {
+    if ((file = open(outfile, flags, (mode_t)0644)) == -1) {
+      perror("yxsh: Cannot open output file");
+      return false;
+    }
+
+    return switch_file_descriptor(file, STDERR_FILENO, 
+        "yxsh: Cannot set output file");
+  }
+  return result;
 }
 
 /**
@@ -133,6 +147,10 @@ static void execute_parent(pid_t pid, command_t* cmd) {
 
 void execute(commandline_t* commandline, size_t ncmds) {
   for (size_t i = 0; i < ncmds; i++) {
+    
+    if (try_builtin(&commandline->cmds[i]))
+      return;
+
     pid_t pid = fork();
     switch (pid) {
       case -1:
@@ -146,3 +164,4 @@ void execute(commandline_t* commandline, size_t ncmds) {
     }
   }
 }
+
