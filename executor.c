@@ -19,8 +19,12 @@
 #include "builtin.h"
 #include "executor.h"
 
+static bool setup_redirects(command_t*);
+static bool switch_file_descriptor(int, int, char*);
 static bool set_input_file(char*);
 static bool set_output_file(char*, int);
+static void execute_fork(command_t*);
+static void execute_parent(pid_t, command_t*);
 
 /**
  * Setup input/output redirects if presented.
@@ -127,14 +131,13 @@ static void execute_fork(command_t* cmd) {
  * @param cmd Command for execution.
  */
 static void execute_parent(pid_t pid, command_t* cmd) {
+  int status;
   if (cmd->flags & FLAG_BACKGROUND) {
     printf("yxsh: Running background: %d\n", (int)pid);
     return;
   }
 
-  int status = 0;
-  pid_t result = waitpid(pid, &status, WUNTRACED);
-  if (result == -1)
+  if (waitpid(pid, &status, WUNTRACED) == -1)
     perror("Cannot wait for child process termination");
 }
 
