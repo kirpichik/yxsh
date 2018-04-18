@@ -1,11 +1,12 @@
 //
-//  parseline.cpp
+//  promptline.cpp
 //  yxsh
 //
 //  Created by Кирилл on 14.03.2018.
 //  Copyright © 2018 Кирилл. All rights reserved.
 //
 
+#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -15,9 +16,9 @@
 int promptline(char* prompt, char* line, size_t buff_len) {
   int n = 0;
 
-  write(1, prompt, strlen(prompt));
+  write(STDOUT_FILENO, prompt, strlen(prompt));
   while (1) {
-    n += read(0, (line + n), buff_len - n);
+    n += read(STDIN_FILENO, (line + n), buff_len - n);
     *(line + n) = '\0';
     /*
      *  check to see if command line extends onto
@@ -33,4 +34,3 @@ int promptline(char* prompt, char* line, size_t buff_len) {
     return (n); /* all done */
   }
 }
-

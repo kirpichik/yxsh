@@ -33,9 +33,8 @@ typedef struct commandline commandline_t;
 #define FLAG_IN_PIPE 1
 #define FLAG_OUT_PIPE 2
 #define FLAG_BACKGROUND 4
-#define FLAG_IN_FILE 8
-#define FLAG_OUT_FILE 16
-#define FLAG_APPLY_FILE 32
+#define FLAG_APPLY_FILE 8
+#define FLAG_MERGE_OUT 16
 
 #endif /* _SHELL_H */
 
