@@ -1,7 +1,7 @@
 # Compilers
 CC=gcc
 
-LEX_CC=lex
+LEX_CC=flex
 
 # Compilers flags
 CFLAGS=-c -Wall -std=c99
@@ -10,7 +10,7 @@ LDFLAGS=-lm -ll
 # Parser sources
 YACC_SOURCE=parser.y
 LEX_SOURCE=lexer.l
-LEX_DISABLED_WARNS=-Wno-unneeded-internal-declaration -Wno-unused-function
+LEX_DISABLED_WARNS=-Wno-unused-function
 
 # Parser builds
 YACC_BUILD=parser_yacc.c
@@ -35,14 +35,14 @@ parser_yacc:
 	$(CC) $(CFLAGS) $(YACC_BUILD) -o $(YACC_BUILD:.c=.o)
 
 lexer_lex:
-	$(CC) $(CFLAGS) $(LEX_DISABLED_WARNS) $(LEX_BUILD) -o $(LEX_BUILD:.c=.o)
+	$(CC) $(CFLAGS) $(LEX_DISABLED_WARNS) $(LEX_BUILD) -o $(LEX_BUILD:.c=.o) -lm -ll
 
 yacc: $(YACC_SOURCE)
 	$(YACC_CC) -d -o $(YACC_BUILD) $(YACC_SOURCE)
 
 lex: $(LEX_SOURCE)
-	$(LEX_CC) $(LEX_SOURCE)
-	mv lex.yy.c $(LEX_BUILD)
+	$(LEX_CC) -d -o $(LEX_BUILD) $(LEX_SOURCE)
+	#mv lex.yy.c $(LEX_BUILD)
 
 clean:
 	rm -rf $(OBJECTS) $(EXECUTABLE) $(YACC_BUILD) $(YACC_BUILD:.c=.h) $(LEX_BUILD) $(LEX_BUILD:.c=.o)

@@ -78,7 +78,7 @@ int yywrap() {
 
 int parseline(char* line, commandline_t* cmds) {
   yy_scan_string(line);
-  return 0;
+  return yyparse();
 }
 
 /*int main(void) {
