@@ -96,14 +96,13 @@ static bool set_output_file(char* outfile, int redirects) {
     return false;
   }
 
-  printf("MERGE: %d\n", redirects & FLAG_APPLY_FILE);
-
   result = switch_file_descriptor(file, STDOUT_FILENO,
       "yxsh: Cannot set output file");
   if (!result)
     return false;
 
   if (redirects & FLAG_MERGE_OUT) {
+    
     if ((file = open(outfile, flags, (mode_t)0644)) == -1) {
       perror("yxsh: Cannot open output file");
       return false;
