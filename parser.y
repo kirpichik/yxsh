@@ -227,7 +227,6 @@ static int yylex() {
         current_buff++;
         return ADD_FILE;
       } else if ((c = *current_buff) == '&') {
-	printf("MERGE\n");
         current_buff++;
         return MERGE_OUT;
       }
