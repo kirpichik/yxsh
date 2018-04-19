@@ -1,3 +1,11 @@
+//
+//  parser.y
+//  yxsh
+//
+//  Created by Kirill on 14.03.2018.
+//  Copyright © 2018 Kirill. All rights reserved.
+//
+
 %{
 
 #define YYSTYPE char*
@@ -154,7 +162,7 @@ int parseline(char* line, commandline_t* cmds) {
   current_cmds = cmds;
   prepare_temp_command();
   commands_count = 0;
-  
+
   if (yyparse()) {
     free_cmds_strings(cmds, commands_count);
     free_unfinished();
@@ -176,7 +184,7 @@ static void backgroundCommand() {
 static int storeArg(char* word) {
   if (args_count >= MAXARGS)
     return -1;
-  
+
   current_cmd.cmdargs[args_count++] = word;
   return 0;
 }
@@ -184,10 +192,11 @@ static int storeArg(char* word) {
 static int storeCommand(char* name) {
   if (commands_count >= MAXCMDS)
     return -1;
-  
+
   current_cmd.cmdargs[0] = name;
   current_cmd.cmdargs[args_count] = NULL;
-  memcpy(&(current_cmds->cmds[commands_count++]), &current_cmd, sizeof(command_t));
+  memcpy(&(current_cmds->cmds[commands_count++]), &current_cmd,
+         sizeof(command_t));
   prepare_temp_command();
   return 0;
 }
@@ -244,10 +253,11 @@ static int yylex() {
     c = *(current_buff + word_len);
   }
 
-  if ((quotes && c != '"') || (!quotes && *(current_buff + word_len - 1) == '"'))
+  if ((quotes && c != '"') ||
+      (!quotes && *(current_buff + word_len - 1) == '"'))
     return ERROR;
 
-  yylval = (char*) malloc((word_len + 1) * sizeof(char));
+  yylval = (char*)malloc((word_len + 1) * sizeof(char));
   memcpy(yylval, current_buff, word_len * sizeof(char));
   current_buff += word_len + (quotes ? 1 : 0);
   yylval[word_len] = '\0';

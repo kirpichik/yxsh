@@ -2,8 +2,8 @@
 //  executor.h
 //  yxsh
 //
-//  Created by Кирилл on 02.04.2018.
-//  Copyright © 2018 Кирилл. All rights reserved.
+//  Created by Kirill on 02.04.2018.
+//  Copyright © 2018 Kirill. All rights reserved.
 //
 
 #ifndef _EXECUTOR_H
@@ -19,5 +19,5 @@
  */
 void execute(commandline_t* commandline, size_t ncmds);
 
-#endif
+#endif /* _EXECUTOR_H */
 

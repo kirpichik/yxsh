@@ -2,14 +2,14 @@
 //  builtin.c
 //  yxsh
 //
-//  Created by Кирилл on 11.04.2018.
-//  Copyright © 2018 Кирилл. All rights reserved.
+//  Created by Kirill on 11.04.2018.
+//  Copyright © 2018 Kirill. All rights reserved.
 //
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <stdio.h>
 
 #include "builtin.h"
 
@@ -33,5 +33,4 @@ bool try_builtin(command_t* cmd) {
     return false;
   return true;
 }
-
 

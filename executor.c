@@ -2,8 +2,8 @@
 //  executor.c
 //  yxsh
 //
-//  Created by Кирилл on 02.04.2018.
-//  Copyright © 2018 Кирилл. All rights reserved.
+//  Created by Kirill on 02.04.2018.
+//  Copyright © 2018 Kirill. All rights reserved.
 //
 
 #include <errno.h>
@@ -159,3 +159,4 @@ void execute(commandline_t* commandline, size_t ncmds) {
     }
   }
 }
+

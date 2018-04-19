@@ -1,9 +1,9 @@
 //
-//  promptline.cpp
+//  promptline.c
 //  yxsh
 //
-//  Created by Кирилл on 14.03.2018.
-//  Copyright © 2018 Кирилл. All rights reserved.
+//  Created by Kirill on 14.03.2018.
+//  Copyright © 2018 Kirill. All rights reserved.
 //
 
 #include <ctype.h>
@@ -14,6 +14,7 @@
 #include "promptline.h"
 
 int promptline(char* prompt, char* line, size_t buff_len) {
+  // TODO - Refactor.
   int n = 0;
 
   write(STDOUT_FILENO, prompt, strlen(prompt));
@@ -34,3 +35,4 @@ int promptline(char* prompt, char* line, size_t buff_len) {
     return (n); /* all done */
   }
 }
+

@@ -2,8 +2,8 @@
 //  builtin.h
 //  yxsh
 //
-//  Created by Кирилл on 11.04.2018.
-//  Copyright © 2018 Кирилл. All rights reserved.
+//  Created by Kirill on 11.04.2018.
+//  Copyright © 2018 Kirill. All rights reserved.
 //
 
 #ifndef _BUILTIN_H
@@ -22,5 +22,5 @@
  */
 bool try_builtin(command_t* cmd);
 
-#endif
+#endif /* _BUILTIN_H */
 

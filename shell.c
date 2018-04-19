@@ -2,17 +2,17 @@
 //  shell.c
 //  yxsh
 //
-//  Created by Кирилл on 14.03.2018.
-//  Copyright © 2018 Кирилл. All rights reserved.
+//  Created by Kirill on 14.03.2018.
+//  Copyright © 2018 Kirill. All rights reserved.
 //
 
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "shell.h"
+#include "executor.h"
 #include "parseline.h"
 #include "promptline.h"
-#include "executor.h"
+#include "shell.h"
 
 #define PROMPT "[yx!]> "
 #define INPUT_BUFF 1024
@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
       free_cmds_strings(&commandline, ncmds);
     }
   }
-  
+
   return 0;
 }
 
