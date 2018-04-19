@@ -16,14 +16,17 @@ SOURCES=$(BISON_PRE_BUILD)\
 				shell.c\
 				promptline.c\
 				executor.c\
-				builtin.c
-OBJECTS=$(SOURCES:.c=.o)
+				builtin.c\
+				tasks.c
 HEADERS=shell.h\
 				promptline.h\
 				parseline.h\
 				executor.h\
-				builtin.h
+				builtin.h\
+				tasks.h
 
+# Compiler output
+OBJECTS=$(SOURCES:.c=.o)
 EXECUTABLE=yxsh
 
 all: bison $(HEADERS) $(SOURCES) $(EXECUTABLE)

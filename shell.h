@@ -11,25 +11,28 @@
 
 #include <stdbool.h>
 
+#include "tasks.h"
+
 #define MAXARGS 256
 #define MAXCMDS 64
 
-struct command {
+typedef struct command {
   char flags;
   char* cmdargs[MAXARGS];
   char* infile;
   char* outfile;
-};
+} command_t;
 
-typedef struct command command_t;
-
-struct commandline {
+typedef struct commandline {
   command_t cmds[MAXCMDS];
-};
+} commandline_t;
 
-typedef struct commandline commandline_t;
+typedef struct environment {
+  task_t* tasks;
+  int prev_out_pipe;
+} env_t;
 
-/*  Command flag's  */
+/* Command flags */
 #define FLAG_IN_PIPE 1
 #define FLAG_OUT_PIPE 2
 #define FLAG_BACKGROUND 4

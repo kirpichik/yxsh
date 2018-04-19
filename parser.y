@@ -14,8 +14,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
 #include "parseline.h"
+
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static char* current_buff;
 static commandline_t* current_cmds;
@@ -158,6 +161,10 @@ void free_cmds_strings(commandline_t* cmdline, size_t ncmds) {
 }
 
 int parseline(char* line, commandline_t* cmds) {
+  size_t count;
+  if (pthread_mutex_lock(&mutex))
+    return -1;
+
   current_buff = line;
   current_cmds = cmds;
   prepare_temp_command();
@@ -169,7 +176,11 @@ int parseline(char* line, commandline_t* cmds) {
     return -1;
   }
 
-  return commands_count;
+  count = commands_count;
+  if (pthread_mutex_unlock(&mutex))
+    return -1;
+
+  return count;
 }
 
 static void pipeCommands() {
