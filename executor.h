@@ -10,14 +10,16 @@
 #define _EXECUTOR_H
 
 #include "shell.h"
+#include "tasks.h"
 
 /**
  * Executes commandline.
  *
+ * @param env Current tasks environment.
  * @param commandline Commandline for execution.
  * @param ncmds Number of commands in commandline.
  */
-void execute(commandline_t* commandline, size_t ncmds);
+void execute(tasks_env_t* env, commandline_t* commandline, size_t ncmds);
 
 #endif /* _EXECUTOR_H */
 

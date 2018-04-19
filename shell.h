@@ -25,12 +25,8 @@ typedef struct command {
 
 typedef struct commandline {
   command_t cmds[MAXCMDS];
-} commandline_t;
-
-typedef struct environment {
-  task_t* tasks;
   int prev_out_pipe;
-} env_t;
+} commandline_t;
 
 /* Command flags */
 #define FLAG_IN_PIPE 1

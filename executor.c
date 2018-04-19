@@ -24,7 +24,7 @@ static bool switch_file_descriptor(int, int, char*);
 static bool set_input_file(char*);
 static bool set_output_file(char*, int);
 static void execute_fork(command_t*);
-static void execute_parent(pid_t, command_t*);
+static void execute_parent(tasks_env_t*, pid_t, command_t*);
 
 /**
  * Setup input/output redirects if presented.
@@ -130,10 +130,14 @@ static void execute_fork(command_t* cmd) {
  * @param pid Process ID of sub process.
  * @param cmd Command for execution.
  */
-static void execute_parent(pid_t pid, command_t* cmd) {
+static void execute_parent(tasks_env_t* env, pid_t pid, command_t* cmd) {
   int status;
   if (cmd->flags & FLAG_BACKGROUND) {
-    printf("yxsh: Running background: %d\n", (int)pid);
+    if (!tasks_create_task(pid, env)) {
+      fprintf(stderr, "yxsh: Not enougth space to run task background.\n");
+      return;
+    }
+    fprintf(stderr, "yxsh: Running background: %d\n", (int) pid);
     return;
   }
 
@@ -141,7 +145,7 @@ static void execute_parent(pid_t pid, command_t* cmd) {
     perror("Cannot wait for child process termination");
 }
 
-void execute(commandline_t* commandline, size_t ncmds) {
+void execute(tasks_env_t* env, commandline_t* commandline, size_t ncmds) {
   for (size_t i = 0; i < ncmds; i++) {
     if (try_builtin(&commandline->cmds[i]))
       return;
@@ -155,7 +159,7 @@ void execute(commandline_t* commandline, size_t ncmds) {
         execute_fork(&commandline->cmds[i]);
         return;
       default:
-        execute_parent(pid, &commandline->cmds[i]);
+        execute_parent(env, pid, &commandline->cmds[i]);
     }
   }
 }
