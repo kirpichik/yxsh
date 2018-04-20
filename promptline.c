@@ -13,11 +13,9 @@
 
 #include "promptline.h"
 
-int promptline(char* prompt, char* line, size_t buff_len) {
-  // TODO - Refactor.
+int promptline(char* line, size_t buff_len) {
   int n = 0;
 
-  write(STDOUT_FILENO, prompt, strlen(prompt));
   while (1) {
     n += read(STDIN_FILENO, (line + n), buff_len - n);
     *(line + n) = '\0';

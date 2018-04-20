@@ -15,6 +15,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include "builtin.h"
 #include "executor.h"
@@ -25,6 +26,7 @@ static bool set_input_file(char*);
 static bool set_output_file(char*, int);
 static void execute_fork(command_t*);
 static void execute_parent(tasks_env_t*, pid_t, command_t*);
+static void setup_fork_signals(bool);
 
 /**
  * Setup input/output redirects if presented.
@@ -113,11 +115,27 @@ static bool set_output_file(char* outfile, int redirects) {
 }
 
 /**
+ * Sets signals handlers for executing command.
+ *
+ * @param background Is command runnig in background.
+ */
+static void setup_fork_signals(bool background) {
+  if (background) {
+    signal(SIGINT, SIG_IGN);
+    signal(SIGQUIT, SIG_IGN);
+  } else
+    signal(SIGINT, SIG_DFL);
+
+  signal(SIGTSTP, SIG_DFL);
+}
+
+/**
  * The work is done with a fork process part.
  *
  * @param cmd Command for execution.
  */
 static void execute_fork(command_t* cmd) {
+  setup_fork_signals(cmd->flags & FLAG_BACKGROUND);
   setup_redirects(cmd);
   if (execvp(cmd->cmdargs[0], cmd->cmdargs))
     perror("yxsh: Cannot execute");
@@ -134,15 +152,17 @@ static void execute_parent(tasks_env_t* env, pid_t pid, command_t* cmd) {
   int status;
   if (cmd->flags & FLAG_BACKGROUND) {
     if (!tasks_create_task(pid, env)) {
-      fprintf(stderr, "yxsh: Not enougth space to run task background.\n");
+      fprintf(stderr, "yxsh: Not enougth space to run task in background.\n");
       return;
     }
     fprintf(stderr, "yxsh: Running background: %d\n", (int) pid);
     return;
   }
 
-  if (waitpid(pid, &status, WUNTRACED) == -1)
+  if (waitpid(pid, &status, WUNTRACED) == -1) {
     perror("Cannot wait for child process termination");
+    return;
+  }
 }
 
 void execute(tasks_env_t* env, commandline_t* commandline, size_t ncmds) {

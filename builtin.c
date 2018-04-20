@@ -13,14 +13,30 @@
 
 #include "builtin.h"
 
+#define PATH_SIZE 1024
+
 static void change_dirrectory(command_t* cmd) {
+  char path[PATH_SIZE];
+  char* home;
+
   if (cmd->cmdargs[1] && cmd->cmdargs[2]) {
     fprintf(stderr, "cd: to many arguments");
     return;
   }
 
-  if (chdir(cmd->cmdargs[1]))
+  if (strcpy(path, cmd->cmdargs[1]) == NULL) { // TODO - checks size
     perror("yxsh: cd");
+    return;
+  }
+
+  if (!(home = getenv("HOME"))) {
+    fprintf(stderr, "yxsh: Home path variable is not set.");
+    return;
+  }
+
+  if (chdir(cmd->cmdargs[1])) {   
+    perror("yxsh: cd");
+  }
 }
 
 bool try_builtin(command_t* cmd) {

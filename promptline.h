@@ -9,7 +9,7 @@
 #ifndef _PROMPTLINE_H
 #define _PROMPTLINE_H
 
-int promptline(char* prompt, char* line, size_t sizline);
+int promptline(char* buff, size_t size);
 
 #endif /* _PARSELINE_H */
 
