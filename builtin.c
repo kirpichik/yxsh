@@ -18,23 +18,43 @@
 static void change_dirrectory(command_t* cmd) {
   char path[PATH_SIZE];
   char* home;
+  size_t home_len, arg_len;
 
   if (cmd->cmdargs[1] && cmd->cmdargs[2]) {
     fprintf(stderr, "cd: to many arguments");
     return;
   }
 
-  if (strcpy(path, cmd->cmdargs[1]) == NULL) { // TODO - checks size
-    perror("yxsh: cd");
-    return;
-  }
-
   if (!(home = getenv("HOME"))) {
-    fprintf(stderr, "yxsh: Home path variable is not set.");
+    fprintf(stderr, "yxsh: cd: Home path variable is not set.");
     return;
   }
 
-  if (chdir(cmd->cmdargs[1])) {   
+  if (!cmd->cmdargs[1]) { // No args
+    if (chdir(home))
+      perror("yxsh: cd");
+    return;
+  }
+
+  home_len = strlen(home);
+  arg_len = strlen(cmd->cmdargs[1]);
+
+  if (arg_len + 1 + home_len > PATH_SIZE) {
+    fprintf(stderr, "yxsh: cd: To long path.");
+    return;
+  }
+
+  if (cmd->cmdargs[1][0] == '~') {
+    memcpy(path, home, home_len);
+    memcpy(path + home_len, cmd->cmdargs[1] + 1, arg_len);
+  } else {
+    if (strcpy(path, cmd->cmdargs[1]) == NULL) {
+      perror("yxsh: cd");
+      return;
+    }
+  }
+
+  if (chdir(path)) {
     perror("yxsh: cd");
   }
 }

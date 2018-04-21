@@ -61,11 +61,10 @@ static bool print_prompt() {
     fprintf(stderr, "yxsh: Home path variable is not set.");
     return false;
   }
-  
+
   if (!strncmp(path, home, strlen(home))) {
     memcpy(path + 1, path + strlen(home), strlen(path) - strlen(home) + 1);
     path[0] = '~';
-    printf("%d\n");
   }
 
   write(STDOUT_FILENO, PROMPT_PREFIX, strlen(PROMPT_PREFIX));
