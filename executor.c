@@ -159,6 +159,10 @@ static void execute_parent(tasks_env_t* env, pid_t pid, command_t* cmd) {
     return;
   }
 
+  signal(SIGINT, SIG_IGN);
+  signal(SIGQUIT, SIG_IGN);
+  signal(SIGTSTP, SIG_IGN);
+
   if (waitpid(pid, &status, WUNTRACED) == -1) {
     perror("Cannot wait for child process termination");
     return;

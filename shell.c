@@ -25,6 +25,7 @@
 
 static bool print_prompt();
 static void exit_signal_handler(int);
+static void setup_signals();
 
 int main(int argc, char* argv[]) {
   commandline_t commandline;
@@ -33,9 +34,7 @@ int main(int argc, char* argv[]) {
   int ncmds;
 
   tasks_create_env(&environment);
-  signal(SIGINT, &exit_signal_handler);
-  signal(SIGTSTP, &exit_signal_handler);
-  signal(SIGQUIT, &exit_signal_handler);
+  setup_signals();
 
   while (print_prompt() && promptline(line, sizeof(line)) > 0) {
     if ((ncmds = parseline(line, &commandline)) > 0) {
@@ -43,9 +42,16 @@ int main(int argc, char* argv[]) {
       free_cmds_strings(&commandline, ncmds);
     }
     tasks_collect_zombies(&environment);
+    setup_signals();
   }
 
   return 0;
+}
+
+static void setup_signals() {
+  signal(SIGINT, &exit_signal_handler);
+  signal(SIGTSTP, &exit_signal_handler);
+  signal(SIGQUIT, &exit_signal_handler);
 }
 
 static bool print_prompt() {
