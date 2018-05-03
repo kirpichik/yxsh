@@ -123,8 +123,10 @@ static void setup_fork_signals(bool background) {
   if (background) {
     signal(SIGINT, SIG_IGN);
     signal(SIGQUIT, SIG_IGN);
-  } else
+  } else {
     signal(SIGINT, SIG_DFL);
+    signal(SIGQUIT, SIG_DFL);
+  }
 
   signal(SIGTSTP, SIG_DFL);
 }
