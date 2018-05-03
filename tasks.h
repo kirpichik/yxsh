@@ -12,10 +12,13 @@
 #include <sys/types.h>
 #include <stdbool.h>
 
+#include "shell.h"
+
 #define MAXTSKS 64
 
 typedef struct task {
   pid_t pid;
+  char* display_cmd;
 } task_t;
 
 typedef struct tasks_env {
@@ -34,11 +37,12 @@ void tasks_create_env(tasks_env_t* env);
  * Creates new task and stores it to environment.
  *
  * @param pid Process ID of task.
+ * @param cmd Executing command.
  * @param env Current environment.
  *
  * @return true if task created.
  */
-bool tasks_create_task(pid_t pid, tasks_env_t* env);
+bool tasks_create_task(pid_t pid, command_t* cmd, tasks_env_t* env);
 
 /**
  * Collects all finished (zombies) processes.
@@ -46,6 +50,46 @@ bool tasks_create_task(pid_t pid, tasks_env_t* env);
  * @param env Current environment.
  */
 void tasks_collect_zombies(tasks_env_t* env);
+
+/**
+ * Prints tasks list with ids.
+ * 
+ * @param env Current environment.
+ */
+void tasks_dump_list(tasks_env_t* env);
+
+/**
+ * Searches task by specified id.
+ * 
+ * @param id Task id.
+ * @param env Encironment.
+ * 
+ * @return Task by id or NULL, if not found.
+ */
+task_t* task_by_id(size_t id, tasks_env_t* env);
+
+/**
+ * Send STOP signal to background process.
+ *
+ * @param task Task.
+ *
+ * @return true if success.
+ */
+bool task_stop(task_t* task);
+
+/**
+ * Resumes suspended task into background.
+ *
+ * @param task Task.
+ */
+bool task_resume(task_t* task);
+
+/**
+ * Moves background task into foreground.
+ *
+ * @param task Task.
+ */
+bool task_foreground(task_t* task);
 
 #endif /* _TASKS_H */
 
