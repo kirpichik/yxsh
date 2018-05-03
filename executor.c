@@ -153,7 +153,7 @@ static void execute_fork(command_t* cmd) {
 static void execute_parent(tasks_env_t* env, pid_t pid, command_t* cmd) {
   int status;
   if (cmd->flags & FLAG_BACKGROUND) {
-    if (!tasks_create_task(pid, env)) {
+    if (!tasks_create_task(pid, cmd, env)) {
       fprintf(stderr, "yxsh: Not enougth space to run task in background.\n");
       return;
     }
@@ -173,7 +173,7 @@ static void execute_parent(tasks_env_t* env, pid_t pid, command_t* cmd) {
 
 void execute(tasks_env_t* env, commandline_t* commandline, size_t ncmds) {
   for (size_t i = 0; i < ncmds; i++) {
-    if (try_builtin(&commandline->cmds[i]))
+    if (try_builtin(env, &commandline->cmds[i]))
       return;
 
     pid_t pid = fork();

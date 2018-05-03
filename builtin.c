@@ -59,12 +59,67 @@ static void change_dirrectory(command_t* cmd) {
   }
 }
 
-bool try_builtin(command_t* cmd) {
+static task_t* get_task_user(tasks_env_t* env, char* arg) {
+  if (!arg) {
+    fprintf(stderr, "yxsh: Need argument: <task_id>\n");
+    return NULL;
+  }
+  int id = atoi(arg);
+  task_t* task = task_by_id(id, env);
+  if (!task) {
+    fprintf(stderr, "yxsh: No task with id: %d\n", id);
+    return NULL;
+  }
+  return task;
+}
+
+static void foreground(tasks_env_t* env, command_t* cmd) {
+  task_t* task = get_task_user(env, cmd->cmdargs[1]);
+  if (!task)
+    return;
+  if (task_foreground(task))
+    fprintf(stderr, "yxsh: Task moved foreground.\n");
+  else
+    fprintf(stderr, "yxsh: Cannot move this task foreground.");
+}
+
+static void background(tasks_env_t* env, command_t* cmd) {
+  task_t* task = get_task_user(env, cmd->cmdargs[1]);
+  if (!task)
+    return;
+  if (task_resume(task))
+    fprintf(stderr, "yxsh: Task resumed.\n");
+  else
+    fprintf(stderr, "yxsh: Cannot resume this background task\n");
+}
+
+static void jobs_stop(tasks_env_t* env, command_t* cmd) {
+  task_t* task = get_task_user(env, cmd->cmdargs[1]);
+  if (!task)
+    return;
+  if (task_stop(task))
+    fprintf(stderr, "yxsh: Task stopped.\n");
+  else
+    fprintf(stderr, "yxsh: Cannot stop this background task\n");
+}
+
+static void jobs_list(tasks_env_t* env) {
+  tasks_dump_list(env);
+}
+
+bool try_builtin(tasks_env_t* env, command_t* cmd) {
   if (!strcmp(cmd->cmdargs[0], "exit")) {
-    // TODO - check background
     exit(0);
   } else if (!strcmp(cmd->cmdargs[0], "cd")) {
     change_dirrectory(cmd);
+  } else if (!strcmp(cmd->cmdargs[0], "fg")) {
+    foreground(env, cmd);
+  } else if (!strcmp(cmd->cmdargs[0], "bg")) {
+    background(env, cmd);
+  } else if (!strcmp(cmd->cmdargs[0], "jobs")) {
+    jobs_list(env);
+  } else if (!strcmp(cmd->cmdargs[0], "stop")) {
+    jobs_stop(env, cmd);
   } else
     return false;
   return true;
