@@ -11,6 +11,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <signal.h>
 
 #include "tasks.h"
 
@@ -21,7 +22,7 @@
 #define STATUS_CRASHED 4
 
 static bool update_task_status(task_t*);
-static void print_task(size_t, task_t*);
+static void print_task(task_t*);
 static char* get_status_description(int);
 static int translate_status(int);
 static void remove_task_by_index(size_t, tasks_env_t*);
@@ -34,6 +35,7 @@ void tasks_create_env(tasks_env_t* env) {
 bool tasks_create_task(pid_t pid, command_t* cmd, tasks_env_t* env) {
   size_t index = 0;
   bool running;
+  task_t* task;
 
   if (env->tasks_size >= MAXTSKS) { // No free space to create new task
     // Try to collect zombies
@@ -53,16 +55,37 @@ bool tasks_create_task(pid_t pid, command_t* cmd, tasks_env_t* env) {
   if (!(env->tasks[index - 1] = (task_t*) malloc(sizeof(task_t))))
     return false;
 
-  env->tasks[index - 1]->pid = pid;
-  env->tasks[index - 1]->cmd = cmddup(cmd);
+  task = env->tasks[index - 1];
+
+  task->pid = pid;
+  task->cmd = cmddup(cmd);
+  task->id = index;
   env->tasks_size++;
-  running = update_task_status(env->tasks[index - 1]);
-  print_task(index, env->tasks[index - 1]);
+  running = update_task_status(task);
+  print_task(task);
 
   if (!running)
     remove_task_by_index(index - 1, env);
 
   return true;
+}
+
+void tasks_release_env(tasks_env_t* env) {
+  size_t i = 0;
+  size_t task_count = 0;
+
+  while (task_count < env->tasks_size && i < MAXTSKS) {
+    task_t* task = env->tasks[i++];
+    if (!task)
+      continue;
+    task_count++;
+    kill(task->pid, SIGHUP);
+
+    update_task_status(task);
+    print_task(task);
+    remove_task_by_index(i - 1, env);
+    task_count--;
+  }
 }
 
 void tasks_collect_zombies(tasks_env_t* env) {
@@ -75,8 +98,10 @@ void tasks_collect_zombies(tasks_env_t* env) {
       continue;
     task_count++;
 
-    if (!update_task_status(task)) {
-      print_task(i, task);
+    if (task->status != STATUS_RUNNING &&
+        task->status != STATUS_STOPPED &&
+        !update_task_status(task)) {
+      print_task(task);
       remove_task_by_index(i - 1, env);
       task_count--;
     }
@@ -93,7 +118,7 @@ void tasks_dump_list(tasks_env_t* env) {
       continue;
     task_count++;
 
-    print_task(i, task);
+    print_task(task);
   }
 }
 
@@ -101,16 +126,31 @@ task_t* task_by_id(size_t id, tasks_env_t* env) {
   return id <= env->tasks_size ? env->tasks[id - 1] : NULL;
 }
 
-bool task_stop(task_t* task) {
-  return false;
+void task_stop(task_t* task) {
+  if (kill(task->pid, SIGTSTP))
+    perror("yxsh: Cannot pause task");
+  update_task_status(task);
+  print_task(task);
 }
 
-bool task_resume(task_t* task) {
-  return false;
+void task_resume(task_t* task) {
+  if (kill(task->pid, SIGCONT))
+    perror("yxsh: Cannot resume task");
+  update_task_status(task);
+  print_task(task);
 }
 
-bool task_foreground(task_t* task) {
-  return false;
+void task_wait(task_t* task) {
+  pid_t result;
+  int status;
+  if ((result = waitpid(task->pid, &status, WUNTRACED)) != -1) {
+      if (WIFSTOPPED(status)) {
+        task->status = STATUS_STOPPED;
+        print_task(task);
+      } else
+        task->status = translate_status(status);
+  } else
+    perror("yxsh: Cannot wait for process");
 }
 
 /**
@@ -140,13 +180,12 @@ static bool update_task_status(task_t* task) {
 /**
  * Prints task to stderr.
  *
- * @param id Task id.
  * @param task Task.
  */
-static void print_task(size_t id, task_t* task) {
+static void print_task(task_t* task) {
   char* status = get_status_description(task->status);
   char* cmd = task->cmd->cmdargs[0];
-  fprintf(stderr, "[%lu] (%d | %s): %s\n", id, (int) task->pid, status, cmd);
+  fprintf(stderr, "[%lu] (%d | %s): %s\n", task->id, (int) task->pid, status, cmd);
 }
 
 /**

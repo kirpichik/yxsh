@@ -19,6 +19,7 @@
 typedef struct task {
   pid_t pid;
   int status;
+  size_t id;
   command_t* cmd;
 } task_t;
 
@@ -44,6 +45,13 @@ void tasks_create_env(tasks_env_t* env);
  * @return true if task created.
  */
 bool tasks_create_task(pid_t pid, command_t* cmd, tasks_env_t* env);
+
+/**
+ * Finishes all background tasks and free memory.
+ *
+ * @param env Current envitonment.
+ */
+void tasks_release_env(tasks_env_t* env);
 
 /**
  * Collects all finished (zombies) processes.
@@ -76,21 +84,21 @@ task_t* task_by_id(size_t id, tasks_env_t* env);
  *
  * @return true if success.
  */
-bool task_stop(task_t* task);
+void task_stop(task_t* task);
 
 /**
  * Resumes suspended task into background.
  *
  * @param task Task.
  */
-bool task_resume(task_t* task);
+void task_resume(task_t* task);
 
 /**
- * Moves background task into foreground.
+ * Waits for task.
  *
  * @param task Task.
  */
-bool task_foreground(task_t* task);
+void task_wait(task_t* task);
 
 #endif /* _TASKS_H */
 

@@ -77,30 +77,22 @@ static void foreground(tasks_env_t* env, command_t* cmd) {
   task_t* task = get_task_user(env, cmd->cmdargs[1]);
   if (!task)
     return;
-  if (task_foreground(task))
-    fprintf(stderr, "yxsh: Task moved foreground.\n");
-  else
-    fprintf(stderr, "yxsh: Cannot move this task foreground.");
+  task_resume(task);
+  task_wait(task);
 }
 
 static void background(tasks_env_t* env, command_t* cmd) {
   task_t* task = get_task_user(env, cmd->cmdargs[1]);
   if (!task)
     return;
-  if (task_resume(task))
-    fprintf(stderr, "yxsh: Task resumed.\n");
-  else
-    fprintf(stderr, "yxsh: Cannot resume this background task\n");
+  task_resume(task);
 }
 
 static void jobs_stop(tasks_env_t* env, command_t* cmd) {
   task_t* task = get_task_user(env, cmd->cmdargs[1]);
   if (!task)
     return;
-  if (task_stop(task))
-    fprintf(stderr, "yxsh: Task stopped.\n");
-  else
-    fprintf(stderr, "yxsh: Cannot stop this background task\n");
+  task_stop(task);
 }
 
 static void jobs_list(tasks_env_t* env) {
@@ -109,7 +101,7 @@ static void jobs_list(tasks_env_t* env) {
 
 bool try_builtin(tasks_env_t* env, command_t* cmd) {
   if (!strcmp(cmd->cmdargs[0], "exit")) {
-    // TODO - Kill all background tasks
+    tasks_release_env(env);
     exit(0);
   } else if (!strcmp(cmd->cmdargs[0], "cd")) {
     change_dirrectory(cmd);

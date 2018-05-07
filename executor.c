@@ -163,7 +163,7 @@ static void execute_parent(tasks_env_t* env, pid_t pid, command_t* cmd) {
   signal(SIGTSTP, SIG_IGN);
 
   if (waitpid(pid, &status, WUNTRACED) != -1) {
-    if (WIFSTOPPED(status)) {
+    if (WIFSTOPPED(status)) { // TODO - recatch of STOPPED
       if (!tasks_create_task(pid, cmd, env)) {
         fprintf(stderr, "yxsh: Not enougth space to run task in background.\n");
         // TODO - kill task or return foreground.
