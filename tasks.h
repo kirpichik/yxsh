@@ -18,7 +18,8 @@
 
 typedef struct task {
   pid_t pid;
-  char* display_cmd;
+  int status;
+  command_t* cmd;
 } task_t;
 
 typedef struct tasks_env {
@@ -53,17 +54,17 @@ void tasks_collect_zombies(tasks_env_t* env);
 
 /**
  * Prints tasks list with ids.
- * 
+ *
  * @param env Current environment.
  */
 void tasks_dump_list(tasks_env_t* env);
 
 /**
  * Searches task by specified id.
- * 
+ *
  * @param id Task id.
  * @param env Encironment.
- * 
+ *
  * @return Task by id or NULL, if not found.
  */
 task_t* task_by_id(size_t id, tasks_env_t* env);

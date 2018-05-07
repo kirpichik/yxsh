@@ -109,6 +109,7 @@ static void jobs_list(tasks_env_t* env) {
 
 bool try_builtin(tasks_env_t* env, command_t* cmd) {
   if (!strcmp(cmd->cmdargs[0], "exit")) {
+    // TODO - Kill all background tasks
     exit(0);
   } else if (!strcmp(cmd->cmdargs[0], "cd")) {
     change_dirrectory(cmd);

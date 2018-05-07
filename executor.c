@@ -153,11 +153,8 @@ static void execute_fork(command_t* cmd) {
 static void execute_parent(tasks_env_t* env, pid_t pid, command_t* cmd) {
   int status;
   if (cmd->flags & FLAG_BACKGROUND) {
-    if (!tasks_create_task(pid, cmd, env)) {
+    if (!tasks_create_task(pid, cmd, env)) // TODO - kill or foreground task?
       fprintf(stderr, "yxsh: Not enougth space to run task in background.\n");
-      return;
-    }
-    fprintf(stderr, "yxsh: Running background: %d\n", (int) pid);
     return;
   }
 
@@ -165,8 +162,16 @@ static void execute_parent(tasks_env_t* env, pid_t pid, command_t* cmd) {
   signal(SIGQUIT, SIG_IGN);
   signal(SIGTSTP, SIG_IGN);
 
-  if (waitpid(pid, &status, WUNTRACED) == -1) {
-    perror("Cannot wait for child process termination");
+  if (waitpid(pid, &status, WUNTRACED) != -1) {
+    if (WIFSTOPPED(status)) {
+      if (!tasks_create_task(pid, cmd, env)) {
+        fprintf(stderr, "yxsh: Not enougth space to run task in background.\n");
+        // TODO - kill task or return foreground.
+      }
+      return;
+    }
+  } else {
+    perror("yxsh: Cannot wait for child process termination");
     return;
   }
 }
@@ -179,7 +184,7 @@ void execute(tasks_env_t* env, commandline_t* commandline, size_t ncmds) {
     pid_t pid = fork();
     switch (pid) {
       case -1:
-        perror("Cannot create process");
+        perror("yxsh: Cannot create fork");
         return;
       case 0:
         execute_fork(&commandline->cmds[i]);
