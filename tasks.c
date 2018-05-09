@@ -6,6 +6,7 @@
 //  Copyright © 2018 Kirill. All rights reserved.
 //
 
+#define _POSIX_SOURCE
 #include <sys/wait.h>
 #include <stdlib.h>
 #include <string.h>
