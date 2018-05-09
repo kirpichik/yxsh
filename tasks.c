@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <signal.h>
+#include <unistd.h>
 
 #include "tasks.h"
 
@@ -32,9 +33,9 @@ void tasks_create_env(tasks_env_t* env) {
   memset(env, 0, sizeof(tasks_env_t));
 }
 
-bool tasks_create_task(pid_t pid, command_t* cmd, tasks_env_t* env) {
+bool tasks_create_task(pid_t pid, command_t* cmd, tasks_env_t* env, bool bg) {
   size_t index = 0;
-  bool running;
+  bool finished;
   task_t* task;
 
   if (env->tasks_size >= MAXTSKS) { // No free space to create new task
@@ -61,10 +62,11 @@ bool tasks_create_task(pid_t pid, command_t* cmd, tasks_env_t* env) {
   task->cmd = cmddup(cmd);
   task->id = index;
   env->tasks_size++;
-  running = update_task_status(task);
-  print_task(task);
+  finished = bg ? !update_task_status(task) : task_wait(task);
+  if (bg)
+    print_task(task);
 
-  if (!running)
+  if (finished)
     remove_task_by_index(index - 1, env);
 
   return true;
@@ -98,8 +100,8 @@ void tasks_collect_zombies(tasks_env_t* env) {
       continue;
     task_count++;
 
-    if (task->status != STATUS_RUNNING &&
-        task->status != STATUS_STOPPED &&
+    if ((task->status != STATUS_RUNNING &&
+         task->status != STATUS_STOPPED) ||
         !update_task_status(task)) {
       print_task(task);
       remove_task_by_index(i - 1, env);
@@ -126,31 +128,54 @@ task_t* task_by_id(size_t id, tasks_env_t* env) {
   return id <= env->tasks_size ? env->tasks[id - 1] : NULL;
 }
 
-void task_stop(task_t* task) {
-  if (kill(task->pid, SIGTSTP))
-    perror("yxsh: Cannot pause task");
-  update_task_status(task);
-  print_task(task);
-}
-
-void task_resume(task_t* task) {
-  if (kill(task->pid, SIGCONT))
+void task_resume_background(task_t* task) {
+  if (kill(task->pid, SIGCONT)) {
     perror("yxsh: Cannot resume task");
-  update_task_status(task);
+    return;
+  }
+  task->status = STATUS_RUNNING;
   print_task(task);
 }
 
-void task_wait(task_t* task) {
+void task_resume_foreground(task_t* task) {
+  if (!setup_terminal(task->pid))
+    return;
+  if (kill(task->pid, SIGCONT)) {
+    setup_terminal(task->pid);
+    perror("yxsh: Cannot resume task");
+    return;
+  }
+  task_wait(task);
+  setup_terminal(getpgrp());
+}
+
+bool task_wait(task_t* task) {
   pid_t result;
   int status;
   if ((result = waitpid(task->pid, &status, WUNTRACED)) != -1) {
       if (WIFSTOPPED(status)) {
         task->status = STATUS_STOPPED;
         print_task(task);
+        return false;
       } else
         task->status = translate_status(status);
   } else
     perror("yxsh: Cannot wait for process");
+
+  return true;
+}
+
+bool setup_terminal(pid_t pid) {
+  signal(SIGTTOU, SIG_IGN);
+  if (tcsetpgrp(STDIN_FILENO, pid)) {
+    fprintf(stderr, "%d: %d", pid, getpgrp());
+    perror("yxsh: Cannot setup terminal foreground");
+    signal(SIGTTOU, SIG_DFL);
+    return false;
+  }
+
+  signal(SIGTTOU, SIG_DFL);
+  return true;
 }
 
 /**
@@ -158,23 +183,20 @@ void task_wait(task_t* task) {
  *
  * @param task Task.
  *
- * @return true if task is running.
+ * @return true if task is running or stopped.
  */
 static bool update_task_status(task_t* task) {
   pid_t result;
   int status;
-  if (!(result = waitpid(task->pid, &status, WNOHANG | WUNTRACED))) {
-      task->status = STATUS_RUNNING;
+  if (!(result = waitpid(task->pid, &status, WNOHANG | WUNTRACED)))
       return true;
-  }
 
   if (result == -1) {
     perror("yxsh: Cannot wait for process");
     return false;
   }
 
-  task->status = translate_status(status);
-  return false;
+  return (task->status = translate_status(status)) == STATUS_STOPPED;
 }
 
 /**

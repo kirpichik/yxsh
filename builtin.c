@@ -73,26 +73,19 @@ static task_t* get_task_user(tasks_env_t* env, char* arg) {
   return task;
 }
 
-static void foreground(tasks_env_t* env, command_t* cmd) {
+static void jobs_foreground(tasks_env_t* env, command_t* cmd) {
   task_t* task = get_task_user(env, cmd->cmdargs[1]);
   if (!task)
     return;
-  task_resume(task);
-  task_wait(task);
+
+  task_resume_foreground(task);
 }
 
-static void background(tasks_env_t* env, command_t* cmd) {
+static void jobs_background(tasks_env_t* env, command_t* cmd) {
   task_t* task = get_task_user(env, cmd->cmdargs[1]);
   if (!task)
     return;
-  task_resume(task);
-}
-
-static void jobs_stop(tasks_env_t* env, command_t* cmd) {
-  task_t* task = get_task_user(env, cmd->cmdargs[1]);
-  if (!task)
-    return;
-  task_stop(task);
+  task_resume_background(task);
 }
 
 static void jobs_list(tasks_env_t* env) {
@@ -106,13 +99,11 @@ bool try_builtin(tasks_env_t* env, command_t* cmd) {
   } else if (!strcmp(cmd->cmdargs[0], "cd")) {
     change_dirrectory(cmd);
   } else if (!strcmp(cmd->cmdargs[0], "fg")) {
-    foreground(env, cmd);
+    jobs_foreground(env, cmd);
   } else if (!strcmp(cmd->cmdargs[0], "bg")) {
-    background(env, cmd);
+    jobs_background(env, cmd);
   } else if (!strcmp(cmd->cmdargs[0], "jobs")) {
     jobs_list(env);
-  } else if (!strcmp(cmd->cmdargs[0], "stop")) {
-    jobs_stop(env, cmd);
   } else
     return false;
   return true;

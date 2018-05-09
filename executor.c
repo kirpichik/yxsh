@@ -139,6 +139,15 @@ static void setup_fork_signals(bool background) {
 static void execute_fork(command_t* cmd) {
   setup_fork_signals(cmd->flags & FLAG_BACKGROUND);
   setup_redirects(cmd);
+
+  // TODO - setup program group id for pipeline.
+  setpgid(0, 0);
+
+  if (!(cmd->flags & FLAG_BACKGROUND)) {
+    if (!setup_terminal(getpgrp()))
+      return;
+  }
+
   if (execvp(cmd->cmdargs[0], cmd->cmdargs))
     perror("yxsh: Cannot execute");
   exit(0);
@@ -151,29 +160,18 @@ static void execute_fork(command_t* cmd) {
  * @param cmd Command for execution.
  */
 static void execute_parent(tasks_env_t* env, pid_t pid, command_t* cmd) {
-  int status;
-  if (cmd->flags & FLAG_BACKGROUND) {
-    if (!tasks_create_task(pid, cmd, env)) // TODO - kill or foreground task?
-      fprintf(stderr, "yxsh: Not enougth space to run task in background.\n");
-    return;
+  if (!(cmd->flags & FLAG_BACKGROUND)) {
+    signal(SIGINT, SIG_IGN);
+    signal(SIGQUIT, SIG_IGN);
+    signal(SIGTSTP, SIG_IGN);
   }
 
-  signal(SIGINT, SIG_IGN);
-  signal(SIGQUIT, SIG_IGN);
-  signal(SIGTSTP, SIG_IGN);
-
-  if (waitpid(pid, &status, WUNTRACED) != -1) {
-    if (WIFSTOPPED(status)) { // TODO - recatch of STOPPED
-      if (!tasks_create_task(pid, cmd, env)) {
-        fprintf(stderr, "yxsh: Not enougth space to run task in background.\n");
-        // TODO - kill task or return foreground.
-      }
-      return;
-    }
-  } else {
-    perror("yxsh: Cannot wait for child process termination");
-    return;
+  if (!tasks_create_task(pid, cmd, env, cmd->flags & FLAG_BACKGROUND)) {
+    fprintf(stderr, "yxsh: Not enougth space to run task in background.\n");
+    // TODO - kill task or return foreground.
   }
+
+  setup_terminal(getpgrp());
 }
 
 void execute(tasks_env_t* env, commandline_t* commandline, size_t ncmds) {

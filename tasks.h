@@ -41,10 +41,11 @@ void tasks_create_env(tasks_env_t* env);
  * @param pid Process ID of task.
  * @param cmd Executing command.
  * @param env Current environment.
+ * @param bg Is task background.
  *
  * @return true if task created.
  */
-bool tasks_create_task(pid_t pid, command_t* cmd, tasks_env_t* env);
+bool tasks_create_task(pid_t pid, command_t* cmd, tasks_env_t* env, bool bg);
 
 /**
  * Finishes all background tasks and free memory.
@@ -78,27 +79,36 @@ void tasks_dump_list(tasks_env_t* env);
 task_t* task_by_id(size_t id, tasks_env_t* env);
 
 /**
- * Send STOP signal to background process.
- *
- * @param task Task.
- *
- * @return true if success.
- */
-void task_stop(task_t* task);
-
-/**
  * Resumes suspended task into background.
  *
  * @param task Task.
  */
-void task_resume(task_t* task);
+void task_resume_background(task_t* task);
+
+/**
+ * Resumes suspended task into foreground.
+ *
+ * @param task Task.
+ */
+void task_resume_foreground(task_t* task);
 
 /**
  * Waits for task.
  *
  * @param task Task.
+ *
+ * @return true if task finished.
  */
-void task_wait(task_t* task);
+bool task_wait(task_t* task);
+
+/**
+ * Setting up pid to stdin.
+ *
+ * @param pid Process id to setup.
+ *
+ * @return true if success.
+ */
+bool setup_terminal(pid_t pid);
 
 #endif /* _TASKS_H */
 
