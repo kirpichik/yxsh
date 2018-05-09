@@ -27,7 +27,7 @@ static void print_task(task_t*);
 static char* get_status_description(int);
 static int translate_status(int);
 static void remove_task_by_index(size_t, tasks_env_t*);
-static command_t* cmddup(command_t*);
+static bool cmddup(command_t*, command_t*);
 
 void tasks_create_env(tasks_env_t* env) {
   memset(env, 0, sizeof(tasks_env_t));
@@ -59,11 +59,12 @@ bool tasks_create_task(pid_t pid, command_t* cmd, tasks_env_t* env, bool bg) {
   task = env->tasks[index - 1];
 
   task->pid = pid;
-  task->cmd = cmddup(cmd);
+  if (!cmddup(&task->cmd, cmd))
+    return false;
   task->id = index;
   env->tasks_size++;
   finished = bg ? !update_task_status(task) : task_wait(task);
-  if (bg)
+  if (bg || !finished)
     print_task(task);
 
   if (finished)
@@ -155,7 +156,6 @@ bool task_wait(task_t* task) {
   if ((result = waitpid(task->pid, &status, WUNTRACED)) != -1) {
       if (WIFSTOPPED(status)) {
         task->status = STATUS_STOPPED;
-        print_task(task);
         return false;
       } else
         task->status = translate_status(status);
@@ -168,7 +168,6 @@ bool task_wait(task_t* task) {
 bool setup_terminal(pid_t pid) {
   signal(SIGTTOU, SIG_IGN);
   if (tcsetpgrp(STDIN_FILENO, pid)) {
-    fprintf(stderr, "%d: %d", pid, getpgrp());
     perror("yxsh: Cannot setup terminal foreground");
     signal(SIGTTOU, SIG_DFL);
     return false;
@@ -206,8 +205,9 @@ static bool update_task_status(task_t* task) {
  */
 static void print_task(task_t* task) {
   char* status = get_status_description(task->status);
-  char* cmd = task->cmd->cmdargs[0];
-  fprintf(stderr, "[%lu] (%d | %s): %s\n", task->id, (int) task->pid, status, cmd);
+  char* cmd = task->cmd.cmdargs[0];
+  fprintf(stderr, "[%lu] (%d | %s): %s\n", (unsigned long) task->id,
+      (int) task->pid, status, cmd);
 }
 
 /**
@@ -263,40 +263,63 @@ static char* get_status_description(int status) {
  */
 static void remove_task_by_index(size_t pos, tasks_env_t* env) {
   size_t i = 0;
-  while (env->tasks[pos]->cmd->cmdargs[i])
-    free(env->tasks[pos]->cmd->cmdargs[i++]);
-  free(env->tasks[pos]->cmd);
+  //fprintf(stderr, "TEST1\n");
+  while (env->tasks[pos]->cmd.cmdargs[i]) {
+    command_t* cmd = &env->tasks[pos]->cmd;
+    free(cmd->cmdargs[i++]);
+    free(cmd->infile);
+    free(cmd->outfile);
+  }
+  //fprintf(stderr, "TEST2\n");
   free(env->tasks[pos]);
+  //fprintf(stderr, "TEST3\n");
   env->tasks_size--;
   env->tasks[pos] = NULL;
 }
 
 /**
- * Copy command to heap.
+ * Creates copy of string at heap.
  *
- * @param cmd Command to dup.
+ * @param str String to copy.
  *
- * @return Command on heap.
+ * @return Copied string.
  */
-static command_t* cmddup (command_t* cmd) {
-  if (!cmd)
+static char* str_realloc(char* str) {
+  if (!str)
     return NULL;
 
-  command_t* copy = (command_t*) malloc(sizeof(command_t));
-  copy->flags = cmd->flags;
-  copy->infile = cmd->infile;
-  copy->outfile = cmd->outfile;
+  char* copy = (char*) malloc((strlen(str) + 1) * sizeof(char));
+  if (!copy)
+    return NULL;
+  strcpy(copy, str);
+  return copy;
+}
+
+/**
+ * Duplicate the command.
+ *
+ * @param dest Destination command.
+ * @param cmd Command to duplicate
+ */
+static bool cmddup(command_t* dest, command_t* cmd) {
+  if (!cmd || !dest)
+    return false;
+
+  dest->flags = cmd->flags;
+  dest->infile = str_realloc(cmd->infile);
+  dest->outfile = str_realloc(cmd->outfile);
 
   size_t i = 0;
   while (cmd->cmdargs[i]) {
-    copy->cmdargs[i] = (char*) malloc((strlen(cmd->cmdargs[i]) + 1));
-    if (!(copy->cmdargs[i])) {
+    dest->cmdargs[i] = str_realloc(cmd->cmdargs[i]);
+    if (!(dest->cmdargs[i])) {
       perror("yxsh: Cannot allocate memory");
-      return NULL;
+      while (i)
+        free(dest->cmdargs[--i]);
+      return false;
     }
-    strcpy(copy->cmdargs[i], cmd->cmdargs[i]);
     i++;
   }
-  return copy;
+  return true;
 }
 

@@ -20,7 +20,7 @@ typedef struct task {
   pid_t pid;
   int status;
   size_t id;
-  command_t* cmd;
+  command_t cmd;
 } task_t;
 
 typedef struct tasks_env {
