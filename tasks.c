@@ -320,8 +320,8 @@ static bool cmddup(command_t* dest, command_t* cmd) {
     }
     i++;
   }
-  cmd->cmdargs[i++] = NULL;
-  cmd->cmdargs[i] = NULL;
+  dest->cmdargs[i++] = NULL;
+  dest->cmdargs[i] = NULL;
   return true;
 }
 
