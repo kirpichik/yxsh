@@ -34,7 +34,7 @@ all: bison $(HEADERS) $(SOURCES) $(EXECUTABLE)
 $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(OBJECTS) -o $@ $(LDFLAGS)
 
-.c.o:
+%.o: %.c Makefile
 	$(CC) $(CFLAGS) $< -o $@
 
 bison: $(BISON_SOURCE)

@@ -48,6 +48,15 @@ void tasks_create_env(tasks_env_t* env);
 bool tasks_create_task(pid_t pid, command_t* cmd, tasks_env_t* env, bool bg);
 
 /**
+ * Checks for avaliable task id to create new task.
+ *
+ * @param env Current environment.
+ *
+ * @return true if it has free id.
+ */
+bool tasks_has_free(tasks_env_t* env);
+
+/**
  * Finishes all background tasks and free memory.
  *
  * @param env Current envitonment.

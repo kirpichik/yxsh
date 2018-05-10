@@ -73,6 +73,12 @@ bool tasks_create_task(pid_t pid, command_t* cmd, tasks_env_t* env, bool bg) {
   return true;
 }
 
+bool tasks_has_free(tasks_env_t* env) {
+  if (env->tasks_size >= MAXTSKS)
+    tasks_collect_zombies(env);
+  return env->tasks_size < MAXTSKS;
+}
+
 void tasks_release_env(tasks_env_t* env) {
   size_t i = 0;
   size_t task_count = 0;
@@ -120,7 +126,6 @@ void tasks_dump_list(tasks_env_t* env) {
     if (!task)
       continue;
     task_count++;
-
     print_task(task);
   }
 }
@@ -264,16 +269,14 @@ static char* get_status_description(int status) {
  */
 static void remove_task_by_index(size_t pos, tasks_env_t* env) {
   size_t i = 0;
-  //fprintf(stderr, "TEST1\n");
-  while (env->tasks[pos]->cmd.cmdargs[i]) {
-    command_t* cmd = &env->tasks[pos]->cmd;
+  command_t* cmd = &env->tasks[pos]->cmd;
+  while (cmd->cmdargs[i])
     free(cmd->cmdargs[i++]);
+  if (cmd->infile)
     free(cmd->infile);
+  if (cmd->outfile)
     free(cmd->outfile);
-  }
-  //fprintf(stderr, "TEST2\n");
   free(env->tasks[pos]);
-  //fprintf(stderr, "TEST3\n");
   env->tasks_size--;
   env->tasks[pos] = NULL;
 }
