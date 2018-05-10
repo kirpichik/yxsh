@@ -2,7 +2,7 @@
 CC=gcc
 
 # Compiler flags
-CFLAGS=-c -Wall -std=c99
+CFLAGS=-c -Wall -std=gnu99
 LDFLAGS=-lm
 
 # Bison parser source
