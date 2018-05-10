@@ -195,7 +195,8 @@ static bool update_task_status(task_t* task) {
     return false;
   }
 
-  return (task->status = translate_status(status)) == STATUS_STOPPED;
+  task->status = translate_status(status);
+  return task->status == STATUS_STOPPED || task->status == STATUS_RUNNING;
 }
 
 /**

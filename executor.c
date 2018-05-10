@@ -143,7 +143,7 @@ static void execute_fork(command_t* cmd) {
   // TODO - setup program group id for pipeline.
   setpgid(0, 0);
 
-  if (!(cmd->flags & FLAG_BACKGROUND)) {
+  if (!(cmd->flags & FLAG_BACKGROUND) && !(cmd->flags & FLAG_IN_PIPE) && !cmd->infile) {
     if (!setup_terminal(getpgrp()))
       return;
   }
