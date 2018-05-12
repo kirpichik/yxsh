@@ -3,7 +3,8 @@ CC=gcc
 
 # Compiler flags
 CFLAGS=-c -Wall -std=gnu99
-LDFLAGS=-lm
+READLINE_LIB=-lcurses -lreadline
+LDFLAGS=-lm $(READLINE_LIB)
 
 # Bison parser source
 BISON_SOURCE=parser.y
@@ -14,12 +15,10 @@ BISON_PRE_BUILD=parser.c
 # Sources
 SOURCES=$(BISON_PRE_BUILD)\
 				shell.c\
-				promptline.c\
 				executor.c\
 				builtin.c\
 				tasks.c
 HEADERS=shell.h\
-				promptline.h\
 				parseline.h\
 				executor.h\
 				builtin.h\

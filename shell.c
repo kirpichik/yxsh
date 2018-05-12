@@ -12,18 +12,21 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <string.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
 #include "executor.h"
 #include "parseline.h"
-#include "promptline.h"
 #include "shell.h"
 #include "tasks.h"
 
-#define PROMPT_PREFIX "[yx!>"
-#define PROMPT_SUFFIX "]> "
 #define INPUT_BUFF 1024
 
-static bool print_prompt();
+#define PROMPT_PREFIX "[yx!>"
+#define PROMPT_SUFFIX "]> "
+
+static bool form_prompt(char*);
+static void print_prompt();
 static void child_update_signal_handler(int);
 static void exit_signal_handler(int);
 static void resetup_signals();
@@ -32,18 +35,21 @@ static tasks_env_t environment;
 
 int main(int argc, char* argv[]) {
   commandline_t commandline;
-  char line[INPUT_BUFF];
+  char prompt[INPUT_BUFF];
+  char* line;
   int ncmds;
 
   tasks_create_env(&environment);
   resetup_signals();
   signal(SIGCHLD, &child_update_signal_handler);
 
-  while (print_prompt() && promptline(line, sizeof(line)) > 0) {
+  while (form_prompt(prompt) && (line = readline(prompt)) != NULL) {
+    add_history(line);
     if ((ncmds = parseline(line, &commandline)) > 0) {
       execute(&environment, &commandline, ncmds);
       free_cmds_strings(&commandline, ncmds);
     }
+    free(line);
     resetup_signals();
   }
 
@@ -56,7 +62,7 @@ static void resetup_signals() {
   signal(SIGQUIT, &exit_signal_handler);
 }
 
-static bool print_prompt() {
+static bool form_prompt(char* prompt) {
   char path[INPUT_BUFF];
   char* home;
 
@@ -75,11 +81,19 @@ static bool print_prompt() {
     path[0] = '~';
   }
 
-  write(STDOUT_FILENO, PROMPT_PREFIX, strlen(PROMPT_PREFIX));
-  write(STDOUT_FILENO, path, strlen(path));
-  write(STDOUT_FILENO, PROMPT_SUFFIX, strlen(PROMPT_SUFFIX));
+  if (snprintf(prompt, INPUT_BUFF, "%s%s%s", PROMPT_PREFIX, path, PROMPT_SUFFIX) <= 0) {
+    fprintf(stderr, "yxsh: Cannot form prompt.");
+    return false;
+  }
 
   return true;
+}
+
+static void print_prompt() {
+  char prompt[INPUT_BUFF];
+  if (!form_prompt(prompt))
+    exit(-1);
+  write(STDOUT_FILENO, prompt, strlen(prompt));
 }
 
 static void child_update_signal_handler(int sig) {
@@ -92,7 +106,6 @@ static void child_update_signal_handler(int sig) {
 
 static void exit_signal_handler(int sig) {
   write(STDOUT_FILENO, "\n", 1);
-  if (!print_prompt())
-    exit(-1);
+  print_prompt();
 }
 

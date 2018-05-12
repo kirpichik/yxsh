@@ -26,6 +26,7 @@ typedef struct task {
 typedef struct tasks_env {
   task_t* tasks[MAXTSKS];
   size_t tasks_size;
+  pid_t current_foreground;
 } tasks_env_t;
 
 /**

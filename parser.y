@@ -45,7 +45,7 @@ static void prepare_temp_command();
  *
  * @return Non-zero if to many args.
  */
-static int storeArg(char* word);
+static int store_arg(char* word);
 
 /**
  * Stores current command.
@@ -54,17 +54,17 @@ static int storeArg(char* word);
  *
  * @return Non-zero if to many commands.
  */
-static int storeCommand(char* name);
+static int store_command(char* name);
 
 /**
  * Flags previous commands with pipe.
  */
-static void pipeCommands();
+static void pipe_commands();
 
 /**
  * Flags previous command with background.
  */
-static void backgroundCommand();
+static void background_command();
 
 %}
 
@@ -95,19 +95,19 @@ list             : list separator_op pipeline
                  ;
 
 pipeline         :                         command
-                 | pipeline PIPE linebreak command { pipeCommands(); }
+                 | pipeline PIPE linebreak command { pipe_commands(); }
                  ;
 
-command          : WORD cmd_suffix  { storeCommand($1); }
-                 | WORD             { storeCommand($1); }
+command          : WORD cmd_suffix  { store_command($1); }
+                 | WORD             { store_command($1); }
                  ;
 
 cmd_suffix       :            io_file
                  | cmd_suffix io_file
-                 |                   WORD { storeArg($1); }
-                 | cmd_suffix        WORD { storeArg($2); }
-                 |            QUOTES_WORD { storeArg($1); }
-                 | cmd_suffix QUOTES_WORD { storeArg($2); }
+                 |                   WORD { store_arg($1); }
+                 | cmd_suffix        WORD { store_arg($2); }
+                 |            QUOTES_WORD { store_arg($1); }
+                 | cmd_suffix QUOTES_WORD { store_arg($2); }
                  |            ERROR { yyerror("unexpected quotes"); YYABORT; }
                  | cmd_suffix ERROR { yyerror("unexpected qoutes"); YYABORT; }
                  ;
@@ -122,7 +122,7 @@ linebreak        : NEWLINE
                  | /* empty */
                  ;
 
-separator_op     : BACKGROUND { backgroundCommand(); }
+separator_op     : BACKGROUND { background_command(); }
                  | SEPARATOR
                  ;
 
@@ -183,16 +183,16 @@ int parseline(char* line, commandline_t* cmds) {
   return count;
 }
 
-static void pipeCommands() {
+static void pipe_commands() {
   current_cmds->cmds[commands_count - 1].flags |= FLAG_IN_PIPE;
   current_cmds->cmds[commands_count - 2].flags |= FLAG_OUT_PIPE;
 }
 
-static void backgroundCommand() {
+static void background_command() {
   current_cmds->cmds[commands_count - 1].flags |= FLAG_BACKGROUND;
 }
 
-static int storeArg(char* word) {
+static int store_arg(char* word) {
   if (args_count >= MAXARGS)
     return -1;
 
@@ -200,7 +200,7 @@ static int storeArg(char* word) {
   return 0;
 }
 
-static int storeCommand(char* name) {
+static int store_command(char* name) {
   if (commands_count >= MAXCMDS)
     return -1;
 
@@ -231,7 +231,7 @@ static int yylex() {
   current_buff++;
   switch (c) {
     case '\0':
-      return 0;
+      return NEWLINE;
     case '&':
       return BACKGROUND;
     case ';':
@@ -259,7 +259,8 @@ static int yylex() {
     c = *(++current_buff);
   }
 
-  while ((quotes && c != '"' && c != '\0') || (!quotes && !isspace(c))) {
+  while ((quotes && c != '"' && c != '\0') ||
+        (!quotes && c != '\0' && !isspace(c))) {
     word_len++;
     c = *(current_buff + word_len);
   }

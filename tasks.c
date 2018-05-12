@@ -82,6 +82,8 @@ bool tasks_has_free(tasks_env_t* env) {
 void tasks_release_env(tasks_env_t* env) {
   size_t i = 0;
   size_t task_count = 0;
+  int status;
+  signal(SIGCHLD, SIG_DFL);
 
   while (task_count < env->tasks_size && i < MAXTSKS) {
     task_t* task = env->tasks[i++];
@@ -90,8 +92,8 @@ void tasks_release_env(tasks_env_t* env) {
     task_count++;
     kill(task->pid, SIGHUP);
 
-    update_task_status(task);
-    print_task(task);
+    if (waitpid(task->pid, &status, WNOHANG | WUNTRACED) != -1)
+      task->status = translate_status(status);
     remove_task_by_index(i - 1, env);
     task_count--;
   }
