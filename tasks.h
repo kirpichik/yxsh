@@ -71,6 +71,16 @@ void tasks_release_env(tasks_env_t* env);
 void tasks_collect_zombies(tasks_env_t* env);
 
 /**
+ * Updates process status in background tasks list.
+ * If process is not tracking, do nothing.
+ *
+ * @param env Current environment.
+ * @param pid Process ID for update.
+ * @param status Status
+ */
+void tasks_update_status(tasks_env_t* env, pid_t pid, int status);
+
+/**
  * Prints tasks list with ids.
  *
  * @param env Current environment.

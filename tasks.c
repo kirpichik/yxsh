@@ -117,6 +117,26 @@ void tasks_collect_zombies(tasks_env_t* env) {
   }
 }
 
+void tasks_update_status(tasks_env_t* env, pid_t pid, int status) {
+  size_t i = 0;
+  size_t task_count = 0;
+
+  while (task_count < env->tasks_size && i < MAXTSKS) {
+    task_t* task = env->tasks[i++];
+    if (!task)
+      continue;
+    task_count++;
+
+    if (task->pid == pid) {
+      task->status = translate_status(status);
+      print_task(task);
+      if (task->status != STATUS_STOPPED && task->status != STATUS_RUNNING)
+        remove_task_by_index(i - 1, env);
+      return;
+    }
+  }
+}
+
 void tasks_dump_list(tasks_env_t* env) {
   size_t i = 0;
   size_t task_count = 0;

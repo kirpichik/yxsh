@@ -166,7 +166,7 @@ static void execute_parent(tasks_env_t* env, pid_t pid, command_t* cmd) {
     signal(SIGTSTP, SIG_IGN);
   }
 
-  if (!tasks_has_free(env) &&
+  if (!tasks_has_free(env) ||
       !tasks_create_task(pid, cmd, env, cmd->flags & FLAG_BACKGROUND)) {
     fprintf(stderr, "yxsh: Not enougth space to run task in background.\n");
   }

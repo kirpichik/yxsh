@@ -24,31 +24,33 @@
 #define INPUT_BUFF 1024
 
 static bool print_prompt();
+static void child_update_signal_handler(int);
 static void exit_signal_handler(int);
-static void setup_signals();
+static void resetup_signals();
+
+static tasks_env_t environment;
 
 int main(int argc, char* argv[]) {
   commandline_t commandline;
-  tasks_env_t environment;
   char line[INPUT_BUFF];
   int ncmds;
 
   tasks_create_env(&environment);
-  setup_signals();
+  resetup_signals();
+  signal(SIGCHLD, &child_update_signal_handler);
 
   while (print_prompt() && promptline(line, sizeof(line)) > 0) {
     if ((ncmds = parseline(line, &commandline)) > 0) {
       execute(&environment, &commandline, ncmds);
       free_cmds_strings(&commandline, ncmds);
     }
-    tasks_collect_zombies(&environment);
-    setup_signals();
+    resetup_signals();
   }
 
   return 0;
 }
 
-static void setup_signals() {
+static void resetup_signals() {
   signal(SIGINT, &exit_signal_handler);
   signal(SIGTSTP, &exit_signal_handler);
   signal(SIGQUIT, &exit_signal_handler);
@@ -78,6 +80,14 @@ static bool print_prompt() {
   write(STDOUT_FILENO, PROMPT_SUFFIX, strlen(PROMPT_SUFFIX));
 
   return true;
+}
+
+static void child_update_signal_handler(int sig) {
+  int status;
+  pid_t pid = wait(&status);
+  fprintf(stderr, "\n");
+  tasks_update_status(&environment, pid, status);
+  print_prompt();
 }
 
 static void exit_signal_handler(int sig) {
