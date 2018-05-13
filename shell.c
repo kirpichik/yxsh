@@ -29,6 +29,7 @@ static bool form_prompt(char*);
 static void print_prompt();
 static void child_update_signal_handler(int);
 static void resetup_signals();
+static void shell_add_history(char*);
 
 static tasks_env_t environment;
 
@@ -43,7 +44,7 @@ int main(int argc, char* argv[]) {
 
   while (form_prompt(prompt) && (line = readline(prompt)) != NULL) {
     if ((ncmds = parseline(line, &commandline)) > 0) {
-      add_history(line);
+      shell_add_history(line);
       execute(&environment, &commandline, ncmds);
       free_cmds_strings(&commandline, ncmds);
     }
@@ -53,6 +54,21 @@ int main(int argc, char* argv[]) {
   }
 
   return 0;
+}
+
+static void shell_add_history(char* cmd) {
+  HIST_ENTRY* tmp = previous_history();
+  if (!tmp) {
+    add_history(cmd);
+    return;
+  }
+
+  if (!strcmp(tmp->line, cmd)) {
+    tmp = remove_history(where_history());
+    free_history_entry(tmp);
+  }
+
+  add_history(cmd);
 }
 
 static void resetup_signals() {

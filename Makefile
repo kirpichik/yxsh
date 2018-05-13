@@ -1,9 +1,11 @@
 # Compiler
 CC=gcc
+BISON_CC=bison
 
 # Compiler flags
-CFLAGS=-c -Wall -std=gnu99
+INCLUDES=
 READLINE_LIB=-lcurses -lreadline
+CFLAGS=-c -Wall -std=gnu99 $(INCLUDES)
 LDFLAGS=-lm $(READLINE_LIB)
 
 # Bison parser source
@@ -37,7 +39,7 @@ $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(CFLAGS) $< -o $@
 
 bison: $(BISON_SOURCE)
-	bison -o $(BISON_PRE_BUILD) $(BISON_SOURCE)
+	$(BISON_CC) -o $(BISON_PRE_BUILD) $(BISON_SOURCE)
 
 clean:
 	rm -rf $(OBJECTS) $(EXECUTABLE) $(BISON_PRE_BUILD) $(BISON_PRE_BUILD:.c=.h)
