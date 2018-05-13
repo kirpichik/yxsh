@@ -215,6 +215,8 @@ static int store_command(char* name) {
 static void prepare_temp_command() {
   current_cmd.flags = 0;
   args_count = 1;
+  current_cmd.pipes[0] = -1;
+  current_cmd.pipes[1] = -1;
   current_cmd.cmdargs[0] = NULL;
   current_cmd.infile = NULL;
   current_cmd.outfile = NULL;

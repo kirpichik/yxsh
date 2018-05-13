@@ -19,11 +19,11 @@ typedef struct command {
   char* cmdargs[MAXARGS];
   char* infile;
   char* outfile;
+  int pipes[2];
 } command_t;
 
 typedef struct commandline {
   command_t cmds[MAXCMDS];
-  int prev_out_pipe;
 } commandline_t;
 
 /* Command flags */

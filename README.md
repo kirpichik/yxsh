@@ -18,19 +18,19 @@ cd yxsh
 
 ### Preparing for build
 
-**If you have globally installed** `GNU Readline` and
+**If you have globally installed** `GNU Readline` **and**
 `GNU Bison` **this step can be skipped.**
 
-1. Open Makefile
-2. Edit BISON, INCLUDES and READLINE_LIB variables for your environment.
+1. Open `Makefile`
+2. Edit `BISON`, `INCLUDES` and `READLINE_LIB` variables for your environment.
 
 #### BISON variable:
 
-GNU Bison compiler for parser generation.
+`GNU Bison` compiler for parser generation.
 
 #### INCLUDES variable:
 
-Flags to external libraries for include GNU Readline. Example:
+Flags to external libraries for include `GNU Readline`. Example:
 
 ```make
 INCLUDE=-I/usr/local/opt/readline/include
@@ -38,7 +38,7 @@ INCLUDE=-I/usr/local/opt/readline/include
 
 #### READLINE_LIB variable:
 
-Flags to external libraries for linking GNU Readline.
+Flags to external libraries for linking `GNU Readline`.
 Example for dynamic linking:
 
 ```make
