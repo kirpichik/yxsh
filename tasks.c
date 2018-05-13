@@ -170,12 +170,12 @@ task_t* task_by_id(size_t id, tasks_env_t* env) {
 }
 
 void task_resume_background(task_t* task) {
+  task->status = STATUS_RUNNING;
+  print_task(task);
   if (killpg(task->pid, SIGCONT)) {
     perror("yxsh: Cannot resume task");
     return;
   }
-  task->status = STATUS_RUNNING;
-  print_task(task);
 }
 
 void task_resume_foreground(tasks_env_t* env, task_t* task) {
