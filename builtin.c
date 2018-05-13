@@ -77,8 +77,7 @@ static void jobs_foreground(tasks_env_t* env, command_t* cmd) {
   task_t* task = get_task_user(env, cmd->cmdargs[1]);
   if (!task)
     return;
-
-  task_resume_foreground(task);
+  task_resume_foreground(env, task);
 }
 
 static void jobs_background(tasks_env_t* env, command_t* cmd) {

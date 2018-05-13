@@ -106,9 +106,10 @@ void task_resume_background(task_t* task);
 /**
  * Resumes suspended task into foreground.
  *
+ * @param env Current environment.
  * @param task Task.
  */
-void task_resume_foreground(task_t* task);
+void task_resume_foreground(tasks_env_t* env, task_t* task);
 
 /**
  * Waits for task.

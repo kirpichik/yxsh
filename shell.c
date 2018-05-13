@@ -28,7 +28,6 @@
 static bool form_prompt(char*);
 static void print_prompt();
 static void child_update_signal_handler(int);
-static void exit_signal_handler(int);
 static void resetup_signals();
 
 static tasks_env_t environment;
@@ -43,8 +42,8 @@ int main(int argc, char* argv[]) {
   resetup_signals();
 
   while (form_prompt(prompt) && (line = readline(prompt)) != NULL) {
-    add_history(line);
     if ((ncmds = parseline(line, &commandline)) > 0) {
+      add_history(line);
       execute(&environment, &commandline, ncmds);
       free_cmds_strings(&commandline, ncmds);
     }
@@ -57,9 +56,9 @@ int main(int argc, char* argv[]) {
 }
 
 static void resetup_signals() {
-  signal(SIGINT, &exit_signal_handler);
-  signal(SIGTSTP, &exit_signal_handler);
-  signal(SIGQUIT, &exit_signal_handler);
+  signal(SIGINT, SIG_DFL);
+  signal(SIGTSTP, SIG_DFL);
+  signal(SIGQUIT, SIG_DFL);
   signal(SIGCHLD, &child_update_signal_handler);
 }
 
@@ -100,10 +99,5 @@ static void print_prompt() {
 static void child_update_signal_handler(int sig) {
   if (tasks_update_status(&environment))
     print_prompt();
-}
-
-static void exit_signal_handler(int sig) {
-  write(STDOUT_FILENO, "\n", 1);
-  print_prompt();
 }
 

@@ -62,6 +62,7 @@ bool tasks_create_task(pid_t pid, command_t* cmd, tasks_env_t* env, bool bg) {
   if (!cmddup(&task->cmd, cmd))
     return false;
   task->id = index;
+  task->status = STATUS_RUNNING;
   env->tasks_size++;
   finished = bg ? !update_task_status(task) : task_wait(task);
   if (bg || !finished)
@@ -90,7 +91,7 @@ void tasks_release_env(tasks_env_t* env) {
     if (!task)
       continue;
     task_count++;
-    kill(task->pid, SIGHUP);
+    killpg(task->pid, SIGHUP);
 
     if (waitpid(task->pid, &status, WNOHANG | WUNTRACED) != -1)
       task->status = translate_status(status);
@@ -125,10 +126,13 @@ bool tasks_update_status(tasks_env_t* env) {
   size_t i = 0;
   size_t task_count = 0;
 
-  if ((pid = wait(&status)) == -1) {
-    perror("yxsh: Cannot wait for exited process");
+  if ((pid = waitpid(-1, &status, WNOHANG | WUNTRACED)) == -1) {
+    perror("yxsh: Cannot wait for process");
     return true;
   }
+
+  if (!pid)
+    return false;
 
   while (task_count < env->tasks_size && i < MAXTSKS) {
     task_t* task = env->tasks[i++];
@@ -162,11 +166,11 @@ void tasks_dump_list(tasks_env_t* env) {
 }
 
 task_t* task_by_id(size_t id, tasks_env_t* env) {
-  return id <= env->tasks_size ? env->tasks[id - 1] : NULL;
+  return id - 1 < MAXTSKS ? env->tasks[id - 1] : NULL;
 }
 
 void task_resume_background(task_t* task) {
-  if (kill(task->pid, SIGCONT)) {
+  if (killpg(task->pid, SIGCONT)) {
     perror("yxsh: Cannot resume task");
     return;
   }
@@ -174,32 +178,34 @@ void task_resume_background(task_t* task) {
   print_task(task);
 }
 
-void task_resume_foreground(task_t* task) {
+void task_resume_foreground(tasks_env_t* env, task_t* task) {
+  signal(SIGCHLD, SIG_DFL);
   if (!setup_terminal(task->pid))
     return;
-  if (kill(task->pid, SIGCONT)) {
-    setup_terminal(task->pid);
+  if (killpg(task->pid, SIGCONT)) {
     perror("yxsh: Cannot resume task");
+    setup_terminal(getpgrp());
     return;
   }
-  task_wait(task);
+  signal(SIGINT, SIG_DFL);
+  if (task_wait(task))
+    remove_task_by_index(task->id - 1, env);
+  else
+    print_task(task);
   setup_terminal(getpgrp());
 }
 
 bool task_wait(task_t* task) {
-  pid_t result;
   int status;
-  if ((result = waitpid(task->pid, &status, WUNTRACED)) != -1) {
+  pid_t result = waitpid(task->pid, &status, WUNTRACED);
+  if (result != -1) {
       if (WIFSTOPPED(status)) {
         task->status = STATUS_STOPPED;
         return false;
       } else
         task->status = translate_status(status);
-  } else {
-    return true;
-    // TODO - SIGCHLD catch process before this waitpid.
-    //perror("yxsh: Cannot wait for process");
-  }
+  } else
+    perror("yxsh: Cannot wait for process");
 
   return true;
 }
@@ -227,10 +233,10 @@ static bool update_task_status(task_t* task) {
   pid_t result;
   int status;
   if (!(result = waitpid(task->pid, &status, WNOHANG | WUNTRACED)))
-      return true;
+    return true;
 
   if (result == -1) {
-    //perror("yxsh: Cannot wait for process");
+    perror("yxsh: Cannot wait for process");
     return false;
   }
 
