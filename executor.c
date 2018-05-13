@@ -129,6 +129,7 @@ static void setup_fork_signals(bool background) {
   }
 
   signal(SIGTSTP, SIG_DFL);
+  signal(SIGCHLD, SIG_DFL);
 }
 
 /**
@@ -143,7 +144,7 @@ static void execute_fork(command_t* cmd) {
   // TODO - setup program group id for pipeline.
   setpgid(0, 0);
 
-  if (!(cmd->flags & FLAG_BACKGROUND) && !(cmd->flags & FLAG_IN_PIPE) && !cmd->infile) {
+  if (!(cmd->flags & (FLAG_BACKGROUND | FLAG_IN_PIPE)) && !cmd->infile) {
     if (!setup_terminal(getpgrp()))
       return;
   }
@@ -164,11 +165,14 @@ static void execute_parent(tasks_env_t* env, pid_t pid, command_t* cmd) {
     signal(SIGINT, SIG_IGN);
     signal(SIGQUIT, SIG_IGN);
     signal(SIGTSTP, SIG_IGN);
+    signal(SIGCHLD, SIG_DFL);
   }
 
   if (!tasks_has_free(env) ||
       !tasks_create_task(pid, cmd, env, cmd->flags & FLAG_BACKGROUND)) {
     fprintf(stderr, "yxsh: Not enougth space to run task in background.\n");
+    kill(pid, SIGHUP);
+    waitpid(pid, NULL, WUNTRACED);
   }
 
   setup_terminal(getpgrp());

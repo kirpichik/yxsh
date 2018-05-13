@@ -14,7 +14,7 @@
 
 #include "shell.h"
 
-#define MAXTSKS 64
+#define MAXTSKS 1024
 
 typedef struct task {
   pid_t pid;
@@ -26,7 +26,6 @@ typedef struct task {
 typedef struct tasks_env {
   task_t* tasks[MAXTSKS];
   size_t tasks_size;
-  pid_t current_foreground;
 } tasks_env_t;
 
 /**
@@ -73,13 +72,12 @@ void tasks_collect_zombies(tasks_env_t* env);
 
 /**
  * Updates process status in background tasks list.
- * If process is not tracking, do nothing.
  *
  * @param env Current environment.
- * @param pid Process ID for update.
- * @param status Status
+ *
+ * @return Is some status updates dumped.
  */
-void tasks_update_status(tasks_env_t* env, pid_t pid, int status);
+bool tasks_update_status(tasks_env_t* env);
 
 /**
  * Prints tasks list with ids.

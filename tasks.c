@@ -119,9 +119,16 @@ void tasks_collect_zombies(tasks_env_t* env) {
   }
 }
 
-void tasks_update_status(tasks_env_t* env, pid_t pid, int status) {
+bool tasks_update_status(tasks_env_t* env) {
+  int status;
+  pid_t pid;
   size_t i = 0;
   size_t task_count = 0;
+
+  if ((pid = wait(&status)) == -1) {
+    perror("yxsh: Cannot wait for exited process");
+    return true;
+  }
 
   while (task_count < env->tasks_size && i < MAXTSKS) {
     task_t* task = env->tasks[i++];
@@ -131,12 +138,14 @@ void tasks_update_status(tasks_env_t* env, pid_t pid, int status) {
 
     if (task->pid == pid) {
       task->status = translate_status(status);
+      fprintf(stderr, "\n");
       print_task(task);
       if (task->status != STATUS_STOPPED && task->status != STATUS_RUNNING)
         remove_task_by_index(i - 1, env);
-      return;
+      return true;
     }
   }
+  return false;
 }
 
 void tasks_dump_list(tasks_env_t* env) {
@@ -186,8 +195,11 @@ bool task_wait(task_t* task) {
         return false;
       } else
         task->status = translate_status(status);
-  } else
-    perror("yxsh: Cannot wait for process");
+  } else {
+    return true;
+    // TODO - SIGCHLD catch process before this waitpid.
+    //perror("yxsh: Cannot wait for process");
+  }
 
   return true;
 }
@@ -218,7 +230,7 @@ static bool update_task_status(task_t* task) {
       return true;
 
   if (result == -1) {
-    perror("yxsh: Cannot wait for process");
+    //perror("yxsh: Cannot wait for process");
     return false;
   }
 

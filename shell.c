@@ -41,7 +41,6 @@ int main(int argc, char* argv[]) {
 
   tasks_create_env(&environment);
   resetup_signals();
-  signal(SIGCHLD, &child_update_signal_handler);
 
   while (form_prompt(prompt) && (line = readline(prompt)) != NULL) {
     add_history(line);
@@ -50,6 +49,7 @@ int main(int argc, char* argv[]) {
       free_cmds_strings(&commandline, ncmds);
     }
     free(line);
+    tasks_collect_zombies(&environment);
     resetup_signals();
   }
 
@@ -60,6 +60,7 @@ static void resetup_signals() {
   signal(SIGINT, &exit_signal_handler);
   signal(SIGTSTP, &exit_signal_handler);
   signal(SIGQUIT, &exit_signal_handler);
+  signal(SIGCHLD, &child_update_signal_handler);
 }
 
 static bool form_prompt(char* prompt) {
@@ -97,11 +98,8 @@ static void print_prompt() {
 }
 
 static void child_update_signal_handler(int sig) {
-  int status;
-  pid_t pid = wait(&status);
-  fprintf(stderr, "\n");
-  tasks_update_status(&environment, pid, status);
-  print_prompt();
+  if (tasks_update_status(&environment))
+    print_prompt();
 }
 
 static void exit_signal_handler(int sig) {
