@@ -150,6 +150,7 @@ bool tasks_update_status(tasks_env_t* env) {
       task->status = translate_status(status);
       fprintf(stderr, "\n");
       print_task(task);
+      fflush(stderr);
       print = true;
       if (task->status != STATUS_STOPPED && task->status != STATUS_RUNNING)
         remove_task_by_index(i - 1, env);
