@@ -65,7 +65,7 @@ static task_t* get_task_user(tasks_env_t* env, char* arg) {
     return NULL;
   }
   int id = atoi(arg);
-  task_t* task = task_by_id(id, env);
+  task_t* task = task_by_id(env, id);
   if (!task) {
     fprintf(stderr, "yxsh: No task with id: %d\n", id);
     return NULL;
@@ -91,10 +91,9 @@ static void jobs_list(tasks_env_t* env) {
   tasks_dump_list(env);
 }
 
-bool try_builtin(tasks_env_t* env, command_t* cmd) {
+int try_builtin(tasks_env_t* env, command_t* cmd) {
   if (!strcmp(cmd->cmdargs[0], "exit")) {
-    tasks_release_env(env);
-    exit(0);
+    return BUILTIN_EXIT;
   } else if (!strcmp(cmd->cmdargs[0], "cd")) {
     change_dirrectory(cmd);
   } else if (!strcmp(cmd->cmdargs[0], "fg")) {
@@ -104,7 +103,7 @@ bool try_builtin(tasks_env_t* env, command_t* cmd) {
   } else if (!strcmp(cmd->cmdargs[0], "jobs")) {
     jobs_list(env);
   } else
-    return false;
-  return true;
+    return BUILTIN_NOTFOUND;
+  return BUILTIN_EXECUTED;
 }
 

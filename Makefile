@@ -19,14 +19,12 @@ SOURCES=$(BISON_PRE_BUILD)\
 				shell.c\
 				executor.c\
 				builtin.c\
-				tasks.c\
-				utils.c
+				tasks.c
 HEADERS=shell.h\
 				parseline.h\
 				executor.h\
 				builtin.h\
-				tasks.h\
-				utils.h
+				tasks.h
 
 # Compiler output
 OBJECTS=$(SOURCES:.c=.o)

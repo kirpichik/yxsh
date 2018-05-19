@@ -45,7 +45,14 @@ int main(int argc, char* argv[]) {
   while (form_prompt(prompt) && (line = readline(prompt)) != NULL) {
     if ((ncmds = parseline(line, &commandline)) > 0) {
       shell_add_history(line);
-      execute(&environment, &commandline, ncmds);
+      if (!execute(&environment, &commandline, ncmds)) {
+        free_cmds_strings(&commandline, ncmds);
+        tasks_collect_zombies(&environment);
+        tasks_release_env(&environment);
+        free(line);
+        clear_history();
+        exit(0);
+      }
       free_cmds_strings(&commandline, ncmds);
     }
     free(line);

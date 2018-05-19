@@ -20,7 +20,8 @@ typedef struct task {
   pid_t pid;
   int status;
   size_t id;
-  command_t cmd;
+  size_t count;
+  char* display_name;
 } task_t;
 
 typedef struct tasks_env {
@@ -36,16 +37,29 @@ typedef struct tasks_env {
 void tasks_create_env(tasks_env_t* env);
 
 /**
- * Creates new task and stores it to environment.
+ * Runs the task and monitors its status until it finishes.
  *
- * @param pid Process ID of task.
- * @param cmd Executing command.
  * @param env Current environment.
- * @param bg Is task background.
+ * @param pid Process ID of task.
+ * @param bg Is this task background.
+ * @param display Task display name.
  *
  * @return true if task created.
  */
-bool tasks_create_task(pid_t pid, command_t* cmd, tasks_env_t* env, bool bg);
+bool tasks_run_task(tasks_env_t* env, pid_t pid, bool bg, char* display);
+
+/**
+ * Runs the pipeline task and monitors its status until it finishes.
+ *
+ * @param env Current environment.
+ * @param pid Process ID of pipeline group.
+ * @param bg Is this task background.
+ * @param num Number of commands in pipeline.
+ * @param display Task display name.
+ *
+ * @return true if task created.
+ */
+bool tasks_run_pipeline(tasks_env_t* env, pid_t pid, bool bg, size_t num, char* display);
 
 /**
  * Checks for avaliable task id to create new task.
@@ -89,12 +103,12 @@ void tasks_dump_list(tasks_env_t* env);
 /**
  * Searches task by specified id.
  *
+ * @param env Current environment.
  * @param id Task id.
- * @param env Encironment.
  *
  * @return Task by id or NULL, if not found.
  */
-task_t* task_by_id(size_t id, tasks_env_t* env);
+task_t* task_by_id(tasks_env_t* env, size_t id);
 
 /**
  * Resumes suspended task into background.

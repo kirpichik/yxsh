@@ -14,7 +14,6 @@
 #include <signal.h>
 #include <unistd.h>
 
-#include "utils.h"
 #include "tasks.h"
 
 #define STATUS_RUNNING 0
@@ -33,7 +32,11 @@ void tasks_create_env(tasks_env_t* env) {
   memset(env, 0, sizeof(tasks_env_t));
 }
 
-bool tasks_create_task(pid_t pid, command_t* cmd, tasks_env_t* env, bool bg) {
+bool tasks_run_task(tasks_env_t* env, pid_t pid, bool bg, char* display) {
+  return tasks_run_pipeline(env, pid, bg, 1, display);
+}
+
+bool tasks_run_pipeline(tasks_env_t* env, pid_t pid, bool bg, size_t num, char* display) {
   size_t index = 0;
   bool finished;
   task_t* task;
@@ -58,12 +61,14 @@ bool tasks_create_task(pid_t pid, command_t* cmd, tasks_env_t* env, bool bg) {
 
   task = env->tasks[index - 1];
 
+  task->display_name = display;
   task->pid = pid;
-  if (!cmddup(&task->cmd, cmd))
-    return false;
   task->id = index;
   task->status = STATUS_RUNNING;
+  task->count = num;
+
   env->tasks_size++;
+
   finished = bg ? !update_task_status(task) : task_wait(task);
   if (bg || !finished)
     print_task(task);
@@ -125,14 +130,7 @@ bool tasks_update_status(tasks_env_t* env) {
   pid_t pid;
   size_t i = 0;
   size_t task_count = 0;
-
-  if ((pid = waitpid(-1, &status, WNOHANG | WUNTRACED)) == -1) {
-    perror("yxsh: Cannot wait for process");
-    return true;
-  }
-
-  if (!pid)
-    return false;
+  bool print = false;
 
   while (task_count < env->tasks_size && i < MAXTSKS) {
     task_t* task = env->tasks[i++];
@@ -140,16 +138,24 @@ bool tasks_update_status(tasks_env_t* env) {
       continue;
     task_count++;
 
-    if (task->pid == pid) {
+    pid = waitpid(-task->pid, &status, WNOHANG | WUNTRACED);
+    if (pid == -1) {
+      perror("yxsh: Cannot wait for process");
+      return true;
+    }
+
+    if (pid) {
+      if (--task->count != 0)
+        continue;
       task->status = translate_status(status);
       fprintf(stderr, "\n");
       print_task(task);
+      print = true;
       if (task->status != STATUS_STOPPED && task->status != STATUS_RUNNING)
         remove_task_by_index(i - 1, env);
-      return true;
     }
   }
-  return false;
+  return print;
 }
 
 void tasks_dump_list(tasks_env_t* env) {
@@ -165,7 +171,7 @@ void tasks_dump_list(tasks_env_t* env) {
   }
 }
 
-task_t* task_by_id(size_t id, tasks_env_t* env) {
+task_t* task_by_id(tasks_env_t* env, size_t id) {
   return id - 1 < MAXTSKS ? env->tasks[id - 1] : NULL;
 }
 
@@ -197,15 +203,22 @@ void task_resume_foreground(tasks_env_t* env, task_t* task) {
 
 bool task_wait(task_t* task) {
   int status;
-  pid_t result = waitpid(task->pid, &status, WUNTRACED);
-  if (result != -1) {
-      if (WIFSTOPPED(status)) {
-        task->status = STATUS_STOPPED;
-        return false;
-      } else
-        task->status = translate_status(status);
-  } else
-    perror("yxsh: Cannot wait for process");
+  bool repeat = true;
+  while (repeat) {
+    pid_t result = waitpid(-task->pid, &status, WUNTRACED);
+    if (result != -1) {
+        if (WIFSTOPPED(status)) {
+          task->status = STATUS_STOPPED;
+          return false;
+        } else {
+          task->status = translate_status(status);
+          repeat = --task->count != 0;
+        }
+    } else {
+      perror("yxsh: Cannot wait for process");
+      return true;
+    }
+  }
 
   return true;
 }
@@ -227,12 +240,12 @@ bool setup_terminal(pid_t pid) {
  *
  * @param task Task.
  *
- * @return true if task is running or stopped.
+ * @return true if task is running or stopped and pipeline is not finished.
  */
 static bool update_task_status(task_t* task) {
   pid_t result;
   int status;
-  if (!(result = waitpid(task->pid, &status, WNOHANG | WUNTRACED)))
+  if (!(result = waitpid(-task->pid, &status, WNOHANG | WUNTRACED)))
     return true;
 
   if (result == -1) {
@@ -241,7 +254,9 @@ static bool update_task_status(task_t* task) {
   }
 
   task->status = translate_status(status);
-  return task->status == STATUS_STOPPED || task->status == STATUS_RUNNING;
+  return task->status == STATUS_STOPPED
+      || task->status == STATUS_RUNNING
+      || --task->count != 0;
 }
 
 /**
@@ -251,9 +266,8 @@ static bool update_task_status(task_t* task) {
  */
 static void print_task(task_t* task) {
   char* status = get_status_description(task->status);
-  char* cmd = task->cmd.cmdargs[0];
   fprintf(stderr, "[%lu] (%d | %s): %s\n", (unsigned long) task->id,
-      (int) task->pid, status, cmd);
+      (int) task->pid, status, task->display_name);
 }
 
 /**
@@ -308,14 +322,7 @@ static char* get_status_description(int status) {
  * @param env Current environment.
  */
 static void remove_task_by_index(size_t pos, tasks_env_t* env) {
-  size_t i = 0;
-  command_t* cmd = &env->tasks[pos]->cmd;
-  while (cmd->cmdargs[i])
-    free(cmd->cmdargs[i++]);
-  if (cmd->infile)
-    free(cmd->infile);
-  if (cmd->outfile)
-    free(cmd->outfile);
+  free(env->tasks[pos]->display_name);
   free(env->tasks[pos]);
   env->tasks_size--;
   env->tasks[pos] = NULL;
