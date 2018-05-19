@@ -14,6 +14,7 @@
 #include <signal.h>
 #include <unistd.h>
 
+#include "utils.h"
 #include "tasks.h"
 
 #define STATUS_RUNNING 0
@@ -27,7 +28,6 @@ static void print_task(task_t*);
 static char* get_status_description(int);
 static int translate_status(int);
 static void remove_task_by_index(size_t, tasks_env_t*);
-static bool cmddup(command_t*, command_t*);
 
 void tasks_create_env(tasks_env_t* env) {
   memset(env, 0, sizeof(tasks_env_t));
@@ -319,53 +319,5 @@ static void remove_task_by_index(size_t pos, tasks_env_t* env) {
   free(env->tasks[pos]);
   env->tasks_size--;
   env->tasks[pos] = NULL;
-}
-
-/**
- * Creates copy of string at heap.
- *
- * @param str String to copy.
- *
- * @return Copied string.
- */
-static char* str_realloc(char* str) {
-  if (!str)
-    return NULL;
-
-  char* copy = (char*) malloc((strlen(str) + 1) * sizeof(char));
-  if (!copy)
-    return NULL;
-  strcpy(copy, str);
-  return copy;
-}
-
-/**
- * Duplicate the command.
- *
- * @param dest Destination command.
- * @param cmd Command to duplicate
- */
-static bool cmddup(command_t* dest, command_t* cmd) {
-  if (!cmd || !dest)
-    return false;
-
-  dest->flags = cmd->flags;
-  dest->infile = str_realloc(cmd->infile);
-  dest->outfile = str_realloc(cmd->outfile);
-
-  size_t i = 0;
-  while (cmd->cmdargs[i]) {
-    dest->cmdargs[i] = str_realloc(cmd->cmdargs[i]);
-    if (!(dest->cmdargs[i])) {
-      perror("yxsh: Cannot allocate memory");
-      while (i)
-        free(dest->cmdargs[--i]);
-      return false;
-    }
-    i++;
-  }
-  dest->cmdargs[i++] = NULL;
-  dest->cmdargs[i] = NULL;
-  return true;
 }
 
