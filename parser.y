@@ -176,7 +176,7 @@ int parseline(char* line, commandline_t* cmds) {
     return -1;
   }
 
-  count = commands_count;
+  count = cmds->ncmds = commands_count;
   if (pthread_mutex_unlock(&mutex))
     return -1;
 

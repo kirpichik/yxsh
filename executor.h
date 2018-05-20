@@ -17,11 +17,10 @@
  *
  * @param env Current tasks environment.
  * @param commandline Commandline for execution.
- * @param ncmds Number of commands in commandline.
  *
  * @return true if program can be continued.
  */
-bool execute(tasks_env_t* env, commandline_t* commandline, size_t ncmds);
+bool execute(tasks_env_t* env, commandline_t* commandline);
 
 #endif /* _EXECUTOR_H */
 

@@ -241,7 +241,8 @@ static void prepare_pipeline(commandline_t* commandline, size_t begin) {
   // Search for last pipeline command
   size_t end = begin;
   size_t pos = begin;
-  while (commandline->cmds[++end].flags & (FLAG_IN_PIPE | FLAG_OUT_PIPE));
+  while (end < commandline->ncmds
+      && commandline->cmds[++end].flags & (FLAG_IN_PIPE | FLAG_OUT_PIPE));
   end--;
 
   // Sets background flag for all commands the same as last command
@@ -275,7 +276,8 @@ static void execute_pipeline(tasks_env_t* env, commandline_t* commandline, size_
     signal(SIGCHLD, SIG_DFL);
   }
 
-  while (commandline->cmds[pos].flags & (FLAG_IN_PIPE | FLAG_OUT_PIPE)) {
+  while (pos < commandline->ncmds
+      && commandline->cmds[pos].flags & (FLAG_IN_PIPE | FLAG_OUT_PIPE)) {
     pid = execute_pipeline_command(&commandline->cmds[pos], &out_pipe);
     if (pid == -1 || !pid) {
       if (out_pipe != -1)
@@ -304,8 +306,8 @@ static void execute_pipeline(tasks_env_t* env, commandline_t* commandline, size_
   setup_terminal(getpgrp());
 }
 
-bool execute(tasks_env_t* env, commandline_t* commandline, size_t ncmds) {
-  for (size_t i = 0; i < ncmds; i++) {
+bool execute(tasks_env_t* env, commandline_t* commandline) {
+  for (size_t i = 0; i < commandline->ncmds; i++) {
     command_t* cmd = &commandline->cmds[i];
 
     int result = try_builtin(env, cmd);

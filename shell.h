@@ -23,6 +23,7 @@ typedef struct command {
 } command_t;
 
 typedef struct commandline {
+  size_t ncmds;
   command_t cmds[MAXCMDS];
 } commandline_t;
 

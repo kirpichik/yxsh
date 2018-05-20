@@ -13,6 +13,7 @@
 #include <stdbool.h>
 #include <signal.h>
 #include <unistd.h>
+#include <readline/readline.h>
 
 #include "tasks.h"
 
@@ -70,8 +71,11 @@ bool tasks_run_pipeline(tasks_env_t* env, pid_t pid, bool bg, size_t num, char* 
   env->tasks_size++;
 
   finished = bg ? !update_task_status(task) : task_wait(task);
-  if (bg || !finished)
+  if (bg || !finished) {
+    if (!bg)
+      rl_crlf();
     print_task(task);
+  }
 
   if (finished)
     remove_task_by_index(index - 1, env);
@@ -138,23 +142,24 @@ bool tasks_update_status(tasks_env_t* env) {
       continue;
     task_count++;
 
-    pid = waitpid(-task->pid, &status, WNOHANG | WUNTRACED);
-    if (pid == -1) {
-      perror("yxsh: Cannot wait for process");
-      return true;
-    }
+    do {
+      pid = waitpid(-task->pid, &status, WNOHANG | WUNTRACED);
+      if (pid == -1) {
+        perror("yxsh: Cannot wait for process");
+        return true;
+      }
 
-    if (pid) {
-      if (--task->count != 0)
-        continue;
-      task->status = translate_status(status);
-      fprintf(stderr, "\n");
-      print_task(task);
-      fflush(stderr);
-      print = true;
-      if (task->status != STATUS_STOPPED && task->status != STATUS_RUNNING)
-        remove_task_by_index(i - 1, env);
-    }
+      if (pid) {
+        if (--task->count != 0)
+          continue;
+        task->status = translate_status(status);
+        rl_crlf();
+        print_task(task);
+        print = true;
+        if (task->status != STATUS_STOPPED && task->status != STATUS_RUNNING)
+          remove_task_by_index(i - 1, env);
+      }
+    } while (pid && task->count);
   }
   return print;
 }
@@ -197,8 +202,10 @@ void task_resume_foreground(tasks_env_t* env, task_t* task) {
   signal(SIGINT, SIG_DFL);
   if (task_wait(task))
     remove_task_by_index(task->id - 1, env);
-  else
+  else {
+    rl_crlf();
     print_task(task);
+  }
   setup_terminal(getpgrp());
 }
 

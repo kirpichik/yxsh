@@ -21,7 +21,7 @@ static void change_dirrectory(command_t* cmd) {
   size_t home_len, arg_len;
 
   if (cmd->cmdargs[1] && cmd->cmdargs[2]) {
-    fprintf(stderr, "cd: to many arguments");
+    fprintf(stderr, "yxsh: cd: to many arguments");
     return;
   }
 

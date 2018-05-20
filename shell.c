@@ -45,7 +45,7 @@ int main(int argc, char* argv[]) {
   while (form_prompt(prompt) && (line = readline(prompt)) != NULL) {
     if ((ncmds = parseline(line, &commandline)) > 0) {
       shell_add_history(line);
-      if (!execute(&environment, &commandline, ncmds)) {
+      if (!execute(&environment, &commandline)) {
         free_cmds_strings(&commandline, ncmds);
         tasks_collect_zombies(&environment);
         tasks_release_env(&environment);
@@ -79,9 +79,9 @@ static void shell_add_history(char* cmd) {
 }
 
 static void resetup_signals() {
-  signal(SIGINT, SIG_DFL);
-  signal(SIGTSTP, SIG_DFL);
-  signal(SIGQUIT, SIG_DFL);
+  signal(SIGINT, SIG_IGN);
+  signal(SIGTSTP, SIG_IGN);
+  signal(SIGQUIT, SIG_IGN);
   signal(SIGCHLD, &child_update_signal_handler);
 }
 
