@@ -17,11 +17,13 @@
 #define MAXTSKS 1024
 
 typedef struct task {
-  pid_t pid;
+  pid_t pgid;
   int status;
   size_t id;
   size_t count;
   char* display_name;
+  size_t pids_amount;
+  pid_t* pids;
 } task_t;
 
 typedef struct tasks_env {
@@ -40,26 +42,28 @@ void tasks_create_env(tasks_env_t* env);
  * Runs the task and monitors its status until it finishes.
  *
  * @param env Current environment.
- * @param pid Process ID of task.
+ * @param pgid Process group ID of task.
  * @param bg Is this task background.
  * @param display Task display name.
  *
  * @return true if task created.
  */
-bool tasks_run_task(tasks_env_t* env, pid_t pid, bool bg, char* display);
+bool tasks_run_task(tasks_env_t* env, pid_t pgid, bool bg, char* display);
 
 /**
  * Runs the pipeline task and monitors its status until it finishes.
  *
  * @param env Current environment.
- * @param pid Process ID of pipeline group.
+ * @param pgid Process group ID of pipeline group.
+ * @param pids Process IDs for all line.
  * @param bg Is this task background.
  * @param num Number of commands in pipeline.
  * @param display Task display name.
  *
  * @return true if task created.
  */
-bool tasks_run_pipeline(tasks_env_t* env, pid_t pid, bool bg, size_t num, char* display);
+bool tasks_run_pipeline(tasks_env_t* env, pid_t pgid, pid_t* pids,
+    bool bg, size_t num, char* display);
 
 /**
  * Checks for avaliable task id to create new task.

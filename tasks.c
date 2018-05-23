@@ -33,11 +33,14 @@ void tasks_create_env(tasks_env_t* env) {
   memset(env, 0, sizeof(tasks_env_t));
 }
 
-bool tasks_run_task(tasks_env_t* env, pid_t pid, bool bg, char* display) {
-  return tasks_run_pipeline(env, pid, bg, 1, display);
+bool tasks_run_task(tasks_env_t* env, pid_t pgid, bool bg, char* display) {
+  pid_t* pids = (pid_t*) malloc(sizeof(pid_t));
+  pids[0] = pgid;
+  return tasks_run_pipeline(env, pgid, pids, bg, 1, display);
 }
 
-bool tasks_run_pipeline(tasks_env_t* env, pid_t pid, bool bg, size_t num, char* display) {
+bool tasks_run_pipeline(tasks_env_t* env, pid_t pgid, pid_t* pids,
+    bool bg, size_t num, char* display) {
   size_t index = 0;
   bool finished;
   task_t* task;
@@ -63,10 +66,12 @@ bool tasks_run_pipeline(tasks_env_t* env, pid_t pid, bool bg, size_t num, char* 
   task = env->tasks[index - 1];
 
   task->display_name = display;
-  task->pid = pid;
+  task->pgid = pgid;
   task->id = index;
   task->status = STATUS_RUNNING;
   task->count = num;
+  task->pids = pids;
+  task->pids_amount = num;
 
   env->tasks_size++;
 
@@ -100,9 +105,9 @@ void tasks_release_env(tasks_env_t* env) {
     if (!task)
       continue;
     task_count++;
-    killpg(task->pid, SIGHUP);
+    killpg(task->pgid, SIGHUP);
 
-    if (waitpid(task->pid, &status, WNOHANG | WUNTRACED) != -1)
+    if (waitpid(task->pgid, &status, WNOHANG | WUNTRACED) != -1)
       task->status = translate_status(status);
     remove_task_by_index(i - 1, env);
     task_count--;
@@ -132,35 +137,37 @@ void tasks_collect_zombies(tasks_env_t* env) {
 bool tasks_update_status(tasks_env_t* env) {
   int status;
   pid_t pid;
-  size_t i = 0;
-  size_t task_count = 0;
+  size_t i;
+  size_t task_count;
   bool print = false;
 
-  while (task_count < env->tasks_size && i < MAXTSKS) {
-    task_t* task = env->tasks[i++];
-    if (!task)
-      continue;
-    task_count++;
+  while ((pid = wait(&status)) > 0) {
+    task_count = 0;
+    i = 0;
+    // Search for task with received pid
+    while (task_count < env->tasks_size && i < MAXTSKS) {
+      task_t* task = env->tasks[i++];
+      if (!task)
+        continue;
+      task_count++;
 
-    do {
-      pid = waitpid(-task->pid, &status, WNOHANG | WUNTRACED);
-      if (pid == -1) {
-        perror("yxsh: Cannot wait for process");
-        return true;
+      // Search for pid in this task
+      for (size_t j = 0; j < task->pids_amount; j++) {
+        if (pid == task->pids[j]) {
+          if (--task->count == 0) {
+            task->status = translate_status(status);
+            rl_crlf();
+            print_task(task);
+            print = true;
+            if (task->status != STATUS_STOPPED && task->status != STATUS_RUNNING)
+              remove_task_by_index(i - 1, env);
+          }
+          break;
+        }
       }
-
-      if (pid) {
-        if (--task->count != 0)
-          continue;
-        task->status = translate_status(status);
-        rl_crlf();
-        print_task(task);
-        print = true;
-        if (task->status != STATUS_STOPPED && task->status != STATUS_RUNNING)
-          remove_task_by_index(i - 1, env);
-      }
-    } while (pid && task->count);
+    }
   }
+
   return print;
 }
 
@@ -184,7 +191,7 @@ task_t* task_by_id(tasks_env_t* env, size_t id) {
 void task_resume_background(task_t* task) {
   task->status = STATUS_RUNNING;
   print_task(task);
-  if (killpg(task->pid, SIGCONT)) {
+  if (killpg(task->pgid, SIGCONT)) {
     perror("yxsh: Cannot resume task");
     return;
   }
@@ -192,9 +199,9 @@ void task_resume_background(task_t* task) {
 
 void task_resume_foreground(tasks_env_t* env, task_t* task) {
   signal(SIGCHLD, SIG_DFL);
-  if (!setup_terminal(task->pid))
+  if (!setup_terminal(task->pgid))
     return;
-  if (killpg(task->pid, SIGCONT)) {
+  if (killpg(task->pgid, SIGCONT)) {
     perror("yxsh: Cannot resume task");
     setup_terminal(getpgrp());
     return;
@@ -213,7 +220,7 @@ bool task_wait(task_t* task) {
   int status;
   bool repeat = true;
   while (repeat) {
-    pid_t result = waitpid(-task->pid, &status, WUNTRACED);
+    pid_t result = waitpid(-task->pgid, &status, WUNTRACED);
     if (result != -1) {
         if (WIFSTOPPED(status)) {
           task->status = STATUS_STOPPED;
@@ -253,7 +260,7 @@ bool setup_terminal(pid_t pid) {
 static bool update_task_status(task_t* task) {
   pid_t result;
   int status;
-  if (!(result = waitpid(-task->pid, &status, WNOHANG | WUNTRACED)))
+  if (!(result = waitpid(-task->pgid, &status, WNOHANG | WUNTRACED)))
     return true;
 
   if (result == -1) {
@@ -275,7 +282,7 @@ static bool update_task_status(task_t* task) {
 static void print_task(task_t* task) {
   char* status = get_status_description(task->status);
   fprintf(stderr, "[%lu] (%d | %s): %s\n", (unsigned long) task->id,
-      (int) task->pid, status, task->display_name);
+      (int) task->pgid, status, task->display_name);
 }
 
 /**
@@ -331,6 +338,7 @@ static char* get_status_description(int status) {
  */
 static void remove_task_by_index(size_t pos, tasks_env_t* env) {
   free(env->tasks[pos]->display_name);
+  free(env->tasks[pos]->pids);
   free(env->tasks[pos]);
   env->tasks_size--;
   env->tasks[pos] = NULL;

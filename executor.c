@@ -28,7 +28,7 @@ static bool set_output_file(char*, int);
 static void execute_fork(command_t*, pid_t);
 static void execute_parent(tasks_env_t*, pid_t, command_t*);
 static pid_t execute_pipeline_command(command_t* cmd, int*, pid_t);
-static void prepare_pipeline(commandline_t*, size_t);
+static size_t prepare_pipeline(commandline_t*, size_t);
 static void execute_pipeline(tasks_env_t*, commandline_t*, size_t);
 static void execute_command(tasks_env_t*, command_t*);
 
@@ -240,8 +240,10 @@ static pid_t execute_pipeline_command(command_t* cmd, int* out_pipe, pid_t pgid)
  *
  * @param commandline Current command line.
  * @param begin Index of pipeline first command.
+ *
+ * @return Amount of commands in pipeline.
  */
-static void prepare_pipeline(commandline_t* commandline, size_t begin) {
+static size_t prepare_pipeline(commandline_t* commandline, size_t begin) {
   // Search for last pipeline command
   size_t end = begin;
   size_t pos = begin;
@@ -253,6 +255,8 @@ static void prepare_pipeline(commandline_t* commandline, size_t begin) {
   char bg = (char) (commandline->cmds[end].flags & FLAG_BACKGROUND);
   for (; pos < end; pos++)
     commandline->cmds[pos].flags |= bg;
+
+  return end - begin + 1;
 }
 
 /**
@@ -268,10 +272,9 @@ static void execute_pipeline(tasks_env_t* env, commandline_t* commandline, size_
   pid_t main_pid = 0;
   char* display;
   int out_pipe = -1;
-  bool bg;
-
-  prepare_pipeline(commandline, begin);
-  bg = commandline->cmds[begin].flags & FLAG_BACKGROUND;
+  size_t amount = prepare_pipeline(commandline, begin);
+  bool bg = commandline->cmds[begin].flags & FLAG_BACKGROUND;
+  pid_t* pids = (pid_t*) malloc(sizeof(pid_t) * amount);
 
   if (!bg) {
     signal(SIGINT, SIG_IGN);
@@ -280,8 +283,7 @@ static void execute_pipeline(tasks_env_t* env, commandline_t* commandline, size_
     signal(SIGCHLD, SIG_DFL);
   }
 
-  while (pos < commandline->ncmds
-      && commandline->cmds[pos].flags & (FLAG_IN_PIPE | FLAG_OUT_PIPE)) {
+  while (pos < amount + begin) {
     pid = execute_pipeline_command(&commandline->cmds[pos], &out_pipe, main_pid);
     if (pid == -1 || !pid) {
       if (out_pipe != -1)
@@ -292,6 +294,7 @@ static void execute_pipeline(tasks_env_t* env, commandline_t* commandline, size_
     if (pos == begin)
       main_pid = pid;
     setpgid(pid, main_pid);
+    pids[pos - begin] = pid;
     pos++;
   }
 
@@ -299,7 +302,7 @@ static void execute_pipeline(tasks_env_t* env, commandline_t* commandline, size_
 
   display = strdup(commandline->cmds[pos - 1].cmdargs[0]); // TODO - make display string.
   if (!tasks_has_free(env)
-      || !tasks_run_pipeline(env, main_pid, bg, pos - begin, display)) {
+      || !tasks_run_pipeline(env, main_pid, pids, bg, amount, display)) {
     fprintf(stderr, "yxsh: Not enougth space to run task in background.\n");
     if (display)
       free(display);
