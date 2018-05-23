@@ -26,11 +26,12 @@ static bool switch_file_descriptor(int, int, char*);
 static bool set_input_file(char*);
 static bool set_output_file(char*, int);
 static void execute_fork(command_t*, pid_t);
-static void execute_parent(tasks_env_t*, pid_t, command_t*);
+static void execute_parent(tasks_env_t*, pid_t, commandline_t*, size_t);
 static pid_t execute_pipeline_command(command_t* cmd, int*, pid_t);
 static size_t prepare_pipeline(commandline_t*, size_t);
 static void execute_pipeline(tasks_env_t*, commandline_t*, size_t);
-static void execute_command(tasks_env_t*, command_t*);
+static void execute_command(tasks_env_t*, commandline_t*, size_t);
+static char* form_display(commandline_t*, size_t, size_t);
 
 /**
  * Setup input/output redirects if presented.
@@ -154,10 +155,14 @@ static void execute_fork(command_t* cmd, pid_t pgid) {
 /**
  * The work is done with a parent process part.
  *
+ * @param env Current environment.
  * @param pid Process ID of sub process.
- * @param cmd Command for execution.
+ * @param commandline Current command line.
+ * @param pos Position of command.
  */
-static void execute_parent(tasks_env_t* env, pid_t pid, command_t* cmd) {
+static void execute_parent(tasks_env_t* env, pid_t pid,
+    commandline_t* commandline, size_t pos) {
+  command_t* cmd = &commandline->cmds[pos];
   char* display;
   if (!(cmd->flags & FLAG_BACKGROUND)) {
     signal(SIGINT, SIG_IGN);
@@ -166,7 +171,8 @@ static void execute_parent(tasks_env_t* env, pid_t pid, command_t* cmd) {
     signal(SIGCHLD, SIG_DFL);
   }
 
-  if (!(display = strdup(cmd->cmdargs[0]))
+  display = form_display(commandline, pos, 1);
+  if (!display
       || !tasks_has_free(env)
       || !tasks_run_task(env, pid, cmd->flags & FLAG_BACKGROUND, display)) {
     fprintf(stderr, "yxsh: Not enougth space to run task in background.\n");
@@ -183,20 +189,21 @@ static void execute_parent(tasks_env_t* env, pid_t pid, command_t* cmd) {
  * Executes command normally.
  *
  * @param env Current environment.
- * @param cmd Command.
+ * @param commandline Current command line.
+ * @param pos Position of command.
  */
-static void execute_command(tasks_env_t* env, command_t* cmd) {
+static void execute_command(tasks_env_t* env, commandline_t* commandline, size_t pos) {
   pid_t pid = fork();
   switch (pid) {
     case -1:
       perror("yxsh: Cannot create fork");
       return;
     case 0:
-      execute_fork(cmd, 0);
+      execute_fork(&commandline->cmds[pos], 0);
       return;
     default:
       setpgid(pid, pid);
-      execute_parent(env, pid, cmd);
+      execute_parent(env, pid, commandline, pos);
   }
 }
 
@@ -260,6 +267,57 @@ static size_t prepare_pipeline(commandline_t* commandline, size_t begin) {
 }
 
 /**
+ * Forms string to display in jobs list.
+ *
+ * @param commandline Current command line.
+ * @param begin Index of pipeline first command.
+ * @param num Amount of commands in line.
+ *
+ * @return Display string.
+ */
+static char* form_display(commandline_t* commandline, size_t begin, size_t num) {
+  size_t len = 0;
+  size_t pos;
+  size_t str_pos = 0;
+  size_t str_len;
+  command_t* cmd;
+  char* display;
+
+  for (size_t i = begin; i < num + begin; i++) {
+    cmd = &(commandline->cmds[i]);
+    pos = 0;
+    while (pos < MAXARGS && cmd->cmdargs[pos])
+      len += strlen(cmd->cmdargs[pos++]) + 1;
+    // 3 additional for pipeline symbols: " | "
+    len += 2;
+  }
+
+  display = (char*) malloc(sizeof(char) * len);
+  if (!display) {
+    perror("yxsh: Cannot form display string");
+    return NULL;
+  }
+
+  for (size_t i = begin; i < num + begin; i++) {
+    cmd = &(commandline->cmds[i]);
+    pos = 0;
+    while (pos < MAXARGS && cmd->cmdargs[pos]) {
+      str_len = strlen(cmd->cmdargs[pos]);
+      memcpy(display + str_pos, cmd->cmdargs[pos], str_len);
+      str_pos += str_len;
+      display[str_pos++] = ' ';
+      pos++;
+    }
+    display[str_pos++] = '|';
+    display[str_pos++] = ' ';
+  }
+
+  // Remove 3 with final pipeline symbols: " | "
+  display[str_pos - 3] = '\0';
+  return display;
+}
+
+/**
  * Executes commands pipeline.
  *
  * @param env Current environment.
@@ -300,8 +358,9 @@ static void execute_pipeline(tasks_env_t* env, commandline_t* commandline, size_
 
   close(out_pipe);
 
-  display = strdup(commandline->cmds[pos - 1].cmdargs[0]); // TODO - make display string.
-  if (!tasks_has_free(env)
+  display = form_display(commandline, begin, amount);
+  if (!display
+      || !tasks_has_free(env)
       || !tasks_run_pipeline(env, main_pid, pids, bg, amount, display)) {
     fprintf(stderr, "yxsh: Not enougth space to run task in background.\n");
     if (display)
@@ -329,7 +388,7 @@ bool execute(tasks_env_t* env, commandline_t* commandline) {
     if (cmd->flags & FLAG_OUT_PIPE)
       execute_pipeline(env, commandline, i);
     else
-      execute_command(env, cmd);
+      execute_command(env, commandline, i);
   }
   return true;
 }
