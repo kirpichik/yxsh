@@ -25,9 +25,9 @@ static bool setup_redirects(command_t*);
 static bool switch_file_descriptor(int, int, char*);
 static bool set_input_file(char*);
 static bool set_output_file(char*, int);
-static void execute_fork(command_t*);
+static void execute_fork(command_t*, pid_t);
 static void execute_parent(tasks_env_t*, pid_t, command_t*);
-static pid_t execute_pipeline_command(command_t* cmd, int*);
+static pid_t execute_pipeline_command(command_t* cmd, int*, pid_t);
 static void prepare_pipeline(commandline_t*, size_t);
 static void execute_pipeline(tasks_env_t*, commandline_t*, size_t);
 static void execute_command(tasks_env_t*, command_t*);
@@ -130,13 +130,16 @@ static bool set_output_file(char* outfile, int redirects) {
  * The work is done with a fork process part.
  *
  * @param cmd Command for execution.
+ * @param pgid Process group ID.
  */
-static void execute_fork(command_t* cmd) {
+static void execute_fork(command_t* cmd, pid_t pgid) {
   signal(SIGINT, SIG_DFL);
   signal(SIGQUIT, SIG_DFL);
   signal(SIGTSTP, SIG_DFL);
   signal(SIGCHLD, SIG_DFL);
   setup_redirects(cmd);
+
+  setpgid(0, pgid);
 
   if (!(cmd->flags & (FLAG_BACKGROUND | FLAG_IN_PIPE)) && !cmd->infile) {
     if (!setup_terminal(getpgrp()))
@@ -189,7 +192,7 @@ static void execute_command(tasks_env_t* env, command_t* cmd) {
       perror("yxsh: Cannot create fork");
       return;
     case 0:
-      execute_fork(cmd);
+      execute_fork(cmd, 0);
       return;
     default:
       setpgid(pid, pid);
@@ -202,10 +205,11 @@ static void execute_command(tasks_env_t* env, command_t* cmd) {
  *
  * @param cmd Command.
  * @param out_pipe Previous output pipe.
+ * @param pgid Process group ID.
  *
  * @return 0 if fork process, -1 if error and other if current process.
  */
-static pid_t execute_pipeline_command(command_t* cmd, int* out_pipe) {
+static pid_t execute_pipeline_command(command_t* cmd, int* out_pipe, pid_t pgid) {
   if (pipe(cmd->pipes)) {
     perror("yxsh: Cannot create pipeline");
     return false;
@@ -218,7 +222,7 @@ static pid_t execute_pipeline_command(command_t* cmd, int* out_pipe) {
       break;
     case 0:
       cmd->pipes[0] = (*out_pipe);
-      execute_fork(cmd);
+      execute_fork(cmd, pgid);
       return pid;
   }
 
@@ -261,7 +265,7 @@ static void prepare_pipeline(commandline_t* commandline, size_t begin) {
 static void execute_pipeline(tasks_env_t* env, commandline_t* commandline, size_t begin) {
   size_t pos = begin;
   pid_t pid;
-  pid_t main_pid;
+  pid_t main_pid = 0;
   char* display;
   int out_pipe = -1;
   bool bg;
@@ -278,7 +282,7 @@ static void execute_pipeline(tasks_env_t* env, commandline_t* commandline, size_
 
   while (pos < commandline->ncmds
       && commandline->cmds[pos].flags & (FLAG_IN_PIPE | FLAG_OUT_PIPE)) {
-    pid = execute_pipeline_command(&commandline->cmds[pos], &out_pipe);
+    pid = execute_pipeline_command(&commandline->cmds[pos], &out_pipe, main_pid);
     if (pid == -1 || !pid) {
       if (out_pipe != -1)
         close(out_pipe);
